@@ -74,10 +74,11 @@ check_status(Message, StateData) ->
 		{weighted, Threshold} ->
 			NewState = weighted_engine(Threshold, State, Message, LowerViews);
 	end,
-	{Name, Policy, NewState, UpperViews, LowerViews}.
+	
+	{Name, Policy, NewState, UpperViews, update_lowerviews_state(Message, LowerViews)}.
 
-one_for_all_engine(State, Message) ->
-	{View, ViewState} = Message,
+%% one_for_all: State changes when at least one of the lower Views has a different State
+one_for_all_engine(State, {View, ViewState}) ->
 	case ViewState != State of 
 		true ->
 			ViewState;
@@ -85,7 +86,20 @@ one_for_all_engine(State, Message) ->
 			State
 	end.
 
+%% all_for_one: State changes when all the lower Views have the same State
+all_for_one_engine(State, {View, ViewState}, LowerViews) -> 
+	.
 
+update_lowerviews_state({View, ViewState}, LowerViews) -> 
+	lists:keyreplace(View, 1, {View, ViewState, get_view_weight(View, LowerViews)}).
 
+update_lowerviews_weight({View, Weight}, LowerViews) ->
+	lists:keyreplace(View, 1, {View, get_view_state(View, LowerViews), Weight}).
 
+get_view_weight(View, LowerViews) ->
+	{_, _, Weight} = lists:keyfind(View, 1, LowerViews),
+	Weight.
 
+get_view_state(View, LowerViews) ->
+	{_, State, _} = lists:keyfind(View, 1, LowerViews),
+	State.
