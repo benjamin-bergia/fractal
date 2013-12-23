@@ -1,7 +1,7 @@
 -module(view_fsm).
 -behaviour(gen_fsm).
 
--export([start_link/1, weighted_engine/3]).
+-export([start_link/1]).
 -include_lib("eunit/include/eunit.hrl").
 
 start_link(StateData) ->
@@ -21,30 +21,31 @@ suspicious(Message, StateData) ->
 
 %% In all the states the same function is used 
 routine(Message, StateData) ->
-	NewStateData = check_status(Message, StateData),
+	NewStateData = update_status(Message, StateData),
 	propagate(NewStateData),
 	{_, _, NextState, _, _} = NewStateData,
 	{next_state, NextState, StateData}.
 %%
 	
-%% Send a state update to all the upper views 
-propagate(NewStateData) ->
-	{Name, _, State, UpperViews, _} = NewStateData,
-	[ gen_fsm:send_event(UpperView, {Name, State}) || UpperView <- UpperViews ].
-%%
-
 %% Call the different engines and returns the new State Data
-check_status(Message, StateData) ->
+update_status(Message, StateData) ->
 	{Name, Policy, State, UpperViews, LowerViews} = StateData,
+	NewLowerViews = update_lowerviews_state(Message, LowerViews),
 	case Policy of 
 		{one_for_all, _} ->
 			NewState = one_for_all_engine(State, Message);
 		{all_for_one, _} ->
-			NewState = all_for_one_engine(State, Message, LowerViews);
+			NewState = all_for_one_engine(State, NewLowerViews);
 		{weighted, Threshold} ->
-			NewState = weighted_engine(Threshold, State, update_lowerviews_state(Message, LowerViews))
+			NewState = weighted_engine(Threshold, State, NewLowerViews)
 	end,
-	{Name, Policy, NewState, UpperViews, update_lowerviews_state(Message, LowerViews)}.
+	{Name, Policy, NewState, UpperViews, NewLowerViews}.
+%%
+
+%% Send a state update to all the upper views 
+propagate(NewStateData) ->
+	{Name, _, State, UpperViews, _} = NewStateData,
+	[ gen_fsm:send_event(UpperView, {Name, State}) || UpperView <- UpperViews ].
 %%
 
 %% one_for_all: State changes when at least one of the lower Views has a different State
@@ -55,17 +56,25 @@ one_for_all_engine(State, {_, ViewState}) ->
 		false ->
 			State
 	end.
+one_for_all_engine_test() ->
+	dead = one_for_all_engine(alive, {"view", dead}),
+	alive = one_for_all_engine(alive, {"view", alive}).
 %%
 
 %% all_for_one: State changes when all the lower Views have the same State
-all_for_one_engine(State, {_, ViewState}, LowerViews) -> 
-	SameState = fun({_, LowerViewState, _}) -> LowerViewState == ViewState end,
-	case lists:all(SameState, LowerViews) of
+all_for_one_engine(State, LowerViews) -> 
+	{_, [NewState|States], _} = lists:unzip3(LowerViews),
+	case lists:all(fun(X) when X == NewState -> true end, States) of
 		true ->
-			ViewState;
+			NewState;
 		false ->
 			State
 	end.
+all_for_one_engine_test() ->
+	LowerViews = [{one, alive, 1}, {two, dead, 2}, {three, alive, 1}],
+	LowerViews2 = [{one, alive, 1}, {two, alive, 3}, {three, alive, 1}],
+	dead = all_for_one_engine(dead, LowerViews),
+	alive = all_for_one_engine(dead, LowerViews2).
 %%
 
 %% weighted State change when the weight sum of the lower views sharing a same state is equal or greater than the threshold value
@@ -80,7 +89,7 @@ weighted_engine(Threshold, State, LowerViews) ->
 		%% If less than the Threshold, no state change
 		Sum < Threshold ->
 			State;
-		%% In case of equal weigth sum return suspicious.
+		%% In case of equal weight sum return suspicious.
 		Sum == Sum2 ->
 			suspicious;
 		Sum >= Threshold -> 
