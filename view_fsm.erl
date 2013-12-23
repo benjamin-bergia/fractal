@@ -1,7 +1,7 @@
 -module(view_fsm).
 -behaviour(gen_fsm).
 
--export([start_link/1]).
+-export([start_link/1, weighted_engine/3]).
 -include_lib("eunit/include/eunit.hrl").
 
 start_link(StateData) ->
@@ -71,10 +71,10 @@ all_for_one_engine(State, {_, ViewState}, LowerViews) ->
 %% weighted State change when the weight sum of the lower views sharing a same state is equal or greater than the threshold value
 weighted_engine(Threshold, State, LowerViews) ->
 	States = list_states(LowerViews),
-	F = fun(State) ->
-			sum_weights(State, LowerViews)
+	F = fun(S) ->
+			sum_weights(S, LowerViews)
 		end,
-	StateSums = lists:foldl(F, States),
+	StateSums = lists:map(F, States),
 	[{NewState, Sum}|_] = insertion_sort(StateSums), 
 	if
 		Sum >= Threshold ->
@@ -83,7 +83,7 @@ weighted_engine(Threshold, State, LowerViews) ->
 			State
 	end.
 weighted_engine_test() ->
-	LowerViews = [{one, alive, 1}, {two, dead, 1}, {three, alive, 1}],
+	LowerViews = [{one, alive, 1}, {two, dead, 2}, {three, alive, 1}],
 	Message = {three, dead},
 	dead = weighted_engine(2, alive, LowerViews).
 %%
@@ -158,8 +158,9 @@ sum_weights_test() ->
 %% Lists all the different State present inside the LowerViews list
 list_states(Views) ->
 	{_, States, _} = lists:unzip3(Views),
-	sets:from_list(States).
+	%%sets:to_list(sets:from_list(States)).
+	lists:usort(States).
 list_states_test() ->
 	Views = [{first, alive, 1}, {second, alive, 3}, {third, suspicious, 2},     {fourth, dead, 2}],
-	[alive, suspicious, dead] = list_states(Views).
+	[alive, dead, suspicious] = list_states(Views).
 %%
