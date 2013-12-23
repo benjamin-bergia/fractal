@@ -42,7 +42,7 @@ check_status(Message, StateData) ->
 		{all_for_one, _} ->
 			NewState = all_for_one_engine(State, Message, LowerViews);
 		{weighted, Threshold} ->
-			NewState = weighted_engine(Threshold, State, Message, LowerViews)
+			NewState = weighted_engine(Threshold, State, update_lowerviews_state(Message, LowerViews))
 	end,
 	{Name, Policy, NewState, UpperViews, update_lowerviews_state(Message, LowerViews)}.
 %%
@@ -69,18 +69,23 @@ all_for_one_engine(State, {_, ViewState}, LowerViews) ->
 %%
 
 %% weighted State change when the weight sum of the lower views sharing a same state is equal or greater than the threshold value
-weighted_engine(Threshold, State, Message, LowerViews) ->
-	NewLowerViews = update_lowerviews_state(Message, LowerViews),
-	AliveSum = lists:foldl(fun({_, alive, Weight}, WeightSum) -> Weight + WeightSum end, 0, NewLowerViews),
-	DeadSum	 = lists:foldl(fun({_, dead, Weight}, WeightSum) -> Weight + WeightSum end, 0, NewLowerViews),
-	SuspiciousSum = lists:foldl(fun({_, suscpicious, Weight}, WeightSum) -> Weight + WeightSum end, 0, NewLowerViews),
-	[{NewState, Sum}|_] = lists:sort(fun({_, SumA}, {_, SumB}) when SumA =< SumB -> true end, [{alive, AliveSum},{dead, DeadSum},{suspicious, SuspiciousSum}]),
+weighted_engine(Threshold, State, LowerViews) ->
+	States = list_states(LowerViews),
+	F = fun(State) ->
+			sum_weights(State, LowerViews)
+		end,
+	StateSums = lists:foldl(F, States),
+	[{NewState, Sum}|_] = insertion_sort(StateSums), 
 	if
 		Sum >= Threshold ->
 			NewState;
 		Sum < Threshold ->
 			State
 	end.
+weighted_engine_test() ->
+	LowerViews = [{one, alive, 1}, {two, dead, 1}, {three, alive, 1}],
+	Message = {three, dead},
+	dead = weighted_engine(2, alive, LowerViews).
 %%
 
 %% Update the state of a specific View in the LowerViews list
@@ -89,7 +94,7 @@ update_lowerviews_state({View, ViewState}, LowerViews) ->
 update_lowerviews_state_test() ->
 	LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
 	Result = [{"first", alive, 1}, {"myview", suscpicious, 2}, {myview, alive, 1}],
-	Result = update_lowerviews_weight({"myview", suscpicious}, LowerViews).
+	Result = update_lowerviews_state({"myview", suscpicious}, LowerViews).
 %%
 
 %% Update the weight of a specific View in the LowerViews list
@@ -119,4 +124,42 @@ get_view_state_test() ->
 	LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
 	View = "myview",
 	dead = get_view_state(View, LowerViews).
+%%
+
+%% Insertion sort on the second elements of a Tuple List 
+insertion_sort(List) ->
+	lists:foldl(fun insertion/2, [], List).
+insertion(Acc, []) ->
+	[Acc];
+insertion(Acc={_, AccSecond}, List=[{_, Second}|_]) when AccSecond =< Second ->
+	[Acc|List];
+insertion(Acc,[H|T]) ->
+	[H|insertion(Acc, T)].
+insertion_sort_test() ->
+	Unsorted = [{3, 5}, {2, 6}, {1, 7}, {5, 1}],
+	SortedSecond = [{5, 1}, {3, 5}, {2, 6}, {1, 7}],
+	SortedSecond = insertion_sort(Unsorted).
+%%
+
+%% Sum the weight of all the Views of a give State
+sum_weights(State, ViewList) ->
+	Sum = fun({_, X, Weight}, WeightSum) when X == State ->
+				Weight + WeightSum;
+			(_, WeightSum) ->
+				WeightSum
+		end,
+	{State, lists:foldl(Sum, 0, ViewList)}.
+sum_weights_test() ->
+	Views = [{first, alive, 1}, {second, alive, 3}, {third, suspicious, 2}, {fourth, dead, 2}],
+	{alive, 4} = sum_weights(alive, Views),
+	{dead, 2} = sum_weights(dead, Views).
+%%
+
+%% Lists all the different State present inside the LowerViews list
+list_states(Views) ->
+	{_, States, _} = lists:unzip3(Views),
+	sets:from_list(States).
+list_states_test() ->
+	Views = [{first, alive, 1}, {second, alive, 3}, {third, suspicious, 2},     {fourth, dead, 2}],
+	[alive, suspicious, dead] = list_states(Views).
 %%
