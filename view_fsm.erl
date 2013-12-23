@@ -1,47 +1,10 @@
 -module(view_fsm).
 -behaviour(gen_fsm).
 
--export([start/1]).
+-export([start_link/1]).
+-include_lib("eunit/include/eunit.hrl").
 
-%%start(StateData) ->
-%%	gen_fsm:start_link({local, view}, view_fsm, StateData, []).
-
-%%init(StateData) ->
-%%	{ok, State, StateData}.
-
-%%alive(Event, StateData) ->
-%%	{next_state, NewState, NewStateData}.
-
-%%suspicious(Event, StateData) ->
-%%	{next_state, NewState, NewStateData}.
-
-%%dead(Event, StateData) ->
-%%	{next_state, NewState, NewStateData}.
-
-%%handle_event(stop, _StateName, StateData) ->
-%%	{stop, normal, StateData}.
-
-%% Event
-%% {ViewName, ViewState}
-
-%% StateData
-%% {Name, Policy, State, UpperViews, LowerViews}
-
-%% UpperViews
-%% [Name|_]
-
-%% LowerViews
-%% [{Name, Status, Weight}|_]
-
-%% Type
-%% one LowerView down == State Change
-%% all LowerView down == State Change
-%% Weighted ...
-
-%% Policy
-%% {Type, Threshold}
-
-start(StateData) ->
+start_link(StateData) ->
 	gen_fsm:start({local, view}, view_fsm, StateData, []).
 
 init(StateData) ->
@@ -122,22 +85,38 @@ weighted_engine(Threshold, State, Message, LowerViews) ->
 
 %% Update the state of a specific View in the LowerViews list
 update_lowerviews_state({View, ViewState}, LowerViews) -> 
-	lists:keyreplace(View, 1, {View, ViewState, get_view_weight(View, LowerViews)}).
+	lists:keyreplace(View, 1, LowerViews, {View, ViewState, get_view_weight(View, LowerViews)}).
+update_lowerviews_state_test() ->
+	LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
+	Result = [{"first", alive, 1}, {"myview", suscpicious, 2}, {myview, alive, 1}],
+	Result = update_lowerviews_weight({"myview", suscpicious}, LowerViews).
 %%
 
 %% Update the weight of a specific View in the LowerViews list
 update_lowerviews_weight({View, Weight}, LowerViews) ->
-	lists:keyreplace(View, 1, {View, get_view_state(View, LowerViews), Weight}).
+	lists:keyreplace(View, 1, LowerViews, {View, get_view_state(View, LowerViews), Weight}).
+update_lowerviews_weight_test() ->
+	LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
+	Result = [{"first", alive, 1}, {"myview", dead, 3}, {myview, alive, 1}],
+	Result = update_lowerviews_weight({"myview", 3}, LowerViews).
 %%
 
 %% Get the weight of a View in the LowerViews list 
 get_view_weight(View, LowerViews) ->
 	{_, _, Weight} = lists:keyfind(View, 1, LowerViews),
 	Weight.
+get_view_weight_test() ->
+	LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
+	View = "myview",
+	2 = get_view_weight(View, LowerViews).
 %%
 
 %% Get the state of a View in the LowerViews list
 get_view_state(View, LowerViews) ->
 	{_, State, _} = lists:keyfind(View, 1, LowerViews),
 	State.
+get_view_state_test() ->
+	LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
+	View = "myview",
+	dead = get_view_state(View, LowerViews).
 %%
