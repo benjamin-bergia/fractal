@@ -75,17 +75,23 @@ weighted_engine(Threshold, State, LowerViews) ->
 			sum_weights(S, LowerViews)
 		end,
 	StateSums = lists:map(F, States),
-	[{NewState, Sum}|_] = insertion_sort(StateSums), 
+	[{NewState, Sum}|[{_, Sum2}]] = inverted_insertion_sort(StateSums), 
 	if
-		Sum >= Threshold ->
-			NewState;
+		%% If less than the Threshold, no state change
 		Sum < Threshold ->
-			State
+			State;
+		%% In case of equal weigth sum return suspicious.
+		Sum == Sum2 ->
+			suspicious;
+		Sum >= Threshold -> 
+			NewState
 	end.
 weighted_engine_test() ->
 	LowerViews = [{one, alive, 1}, {two, dead, 2}, {three, alive, 1}],
-	Message = {three, dead},
-	dead = weighted_engine(2, alive, LowerViews).
+	LowerViews2 = [{one, alive, 1}, {two, dead, 3}, {three, alive, 1}],
+	suspicious = weighted_engine(2, alive, LowerViews),
+	alive = weighted_engine(5, alive, LowerViews),
+	dead = weighted_engine(1, alive, LowerViews2).
 %%
 
 %% Update the state of a specific View in the LowerViews list
@@ -127,18 +133,18 @@ get_view_state_test() ->
 %%
 
 %% Insertion sort on the second elements of a Tuple List 
-insertion_sort(List) ->
-	lists:foldl(fun insertion/2, [], List).
-insertion(Acc, []) ->
+inverted_insertion_sort(List) ->
+	lists:foldl(fun inverted_insertion/2, [], List).
+inverted_insertion(Acc, []) ->
 	[Acc];
-insertion(Acc={_, AccSecond}, List=[{_, Second}|_]) when AccSecond =< Second ->
+inverted_insertion(Acc={_, AccSecond}, List=[{_, Second}|_]) when AccSecond >= Second ->
 	[Acc|List];
-insertion(Acc,[H|T]) ->
-	[H|insertion(Acc, T)].
-insertion_sort_test() ->
+inverted_insertion(Acc,[H|T]) ->
+	[H|inverted_insertion(Acc, T)].
+inverted_insertion_sort_test() ->
 	Unsorted = [{3, 5}, {2, 6}, {1, 7}, {5, 1}],
-	SortedSecond = [{5, 1}, {3, 5}, {2, 6}, {1, 7}],
-	SortedSecond = insertion_sort(Unsorted).
+	SortedSecond = [{1, 7}, {2, 6}, {3, 5}, {5, 1}],
+	SortedSecond = inverted_insertion_sort(Unsorted).
 %%
 
 %% Sum the weight of all the Views of a give State
