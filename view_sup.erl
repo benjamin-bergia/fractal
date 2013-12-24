@@ -7,7 +7,7 @@ start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init(_) ->
-	StateData = {first, {weighted, 1}, alive, [], []},
+	StateData = {first, {weighted, 1}, alive, [{local, firstview}], []},
 	FirstView = {firstview, {view_fsm, start_link, [{local, firstview}, StateData]}, permanent, 2000, worker,[view_fsm]},
 	StateData2 = {second, {weighted, 1}, alive, [], [{firstview, alive, 1}]},
 	SecondView = {secondview, {view_fsm, start_link, [{local, secondview}, StateData2]}, permanent, 2000, worker,[view_fsm]},

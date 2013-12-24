@@ -2,6 +2,8 @@
 -behaviour(gen_fsm).
 
 -export([start_link/2, init/1, alive/2, dead/2, suspicious/2]).
+%%Testing export
+-export([propagate/1]).
 -include_lib("eunit/include/eunit.hrl").
 
 start_link({Scope, Name}, StateData) ->
@@ -43,9 +45,10 @@ update_status(Message, {Name, {Engine, Threshold}, State, UpperViews, LowerViews
 %% Send a state update to all the upper views 
 propagate({Name, _, State, UpperViews, _}) ->
 	Send = fun(Target) -> 
-		gen_fsm:send_event(Target, {Name, State})
-	end,
-	lists:foreach(Send, UpperViews).
+			gen_fsm:send_event(Target, {Name, State}),
+			true
+		end,
+	lists:all(Send, UpperViews).
 %%
 
 %% one_for_all: State changes when at least one of the lower Views has a different State
