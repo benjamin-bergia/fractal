@@ -21,25 +21,23 @@ suspicious(Message, StateData) ->
 
 %% In all the states the same function is used 
 routine(Message, StateData) ->
-	NewStateData = update_status(Message, StateData),
+	{_, _, NextState, _, _} = NewStateData = update_status(Message, StateData),
 	propagate(NewStateData),
-	{_, _, NextState, _, _} = NewStateData,
-	{next_state, NextState, StateData}.
+	{next_state, NextState, NewStateData}.
 %%
 	
 %% Call the different engines and returns the new State Data
-update_status(Message, StateData) ->
-	{Name, Policy, State, UpperViews, LowerViews} = StateData,
+update_status(Message, {Name, {Engine, Threshold}, State, UpperViews, LowerViews}) ->
 	NewLowerViews = update_lowerviews_state(Message, LowerViews),
-	case Policy of 
-		{one_for_all, _} ->
+	case Engine of 
+		one_for_all ->
 			NewState = one_for_all_engine(State, Message);
-		{all_for_one, _} ->
+		all_for_one ->
 			NewState = all_for_one_engine(State, NewLowerViews);
-		{weighted, Threshold} ->
+		weighted ->
 			NewState = weighted_engine(Threshold, State, NewLowerViews)
 	end,
-	{Name, Policy, NewState, UpperViews, NewLowerViews}.
+	{Name, {Engine, Threshold}, NewState, UpperViews, NewLowerViews}.
 %%
 
 %% Send a state update to all the upper views 
@@ -66,7 +64,7 @@ all_for_one_engine(State, LowerViews) ->
 	{_, [NewState|States], _} = lists:unzip3(LowerViews),
 	F = fun(X) when X == NewState ->
 			true;
-		(X) ->
+		(_) ->
 			false
 		end,
 	case lists:all(F, States) of
