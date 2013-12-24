@@ -41,9 +41,11 @@ update_status(Message, {Name, {Engine, Threshold}, State, UpperViews, LowerViews
 %%
 
 %% Send a state update to all the upper views 
-propagate(NewStateData) ->
-	{Name, _, State, UpperViews, _} = NewStateData,
-	[ gen_fsm:send_event(UpperView, {Name, State}) || UpperView <- UpperViews ].
+propagate({Name, _, State, UpperViews, _}) ->
+	Send = fun(Target) -> 
+		gen_fsm:send_event(Target, {Name, State})
+	end,
+	lists:foreach(Send, UpperViews).
 %%
 
 %% one_for_all: State changes when at least one of the lower Views has a different State
