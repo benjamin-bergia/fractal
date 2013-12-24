@@ -1,11 +1,11 @@
 -module(view_fsm).
 -behaviour(gen_fsm).
 
--export([start_link/1]).
+-export([start_link/2, init/1, alive/2, dead/2, suspicious/2]).
 -include_lib("eunit/include/eunit.hrl").
 
-start_link(StateData) ->
-	gen_fsm:start({local, view}, view_fsm, StateData, []).
+start_link({Scope, Name}, StateData) ->
+	gen_fsm:start_link({Scope, Name}, view_fsm, StateData, []).
 
 init(StateData) ->
 	{ok, dead, StateData}.
