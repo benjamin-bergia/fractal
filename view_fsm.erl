@@ -64,7 +64,12 @@ one_for_all_engine_test() ->
 %% all_for_one: State changes when all the lower Views have the same State
 all_for_one_engine(State, LowerViews) -> 
 	{_, [NewState|States], _} = lists:unzip3(LowerViews),
-	case lists:all(fun(X) when X == NewState -> true end, States) of
+	F = fun(X) when X == NewState ->
+			true;
+		(X) ->
+			false
+		end,
+	case lists:all(F, States) of
 		true ->
 			NewState;
 		false ->
