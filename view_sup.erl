@@ -8,11 +8,11 @@ start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init(_) ->
-	StateData = {first, {weighted, 1}, dead, [{local, secondview}], [{view_sup, dead, 1}]},
-	FirstView = {firstview, {view_fsm, start_link, [{local, firstview}, StateData]}, permanent, 2000, worker,[view_fsm]},
-	StateData2 = {second, {weighted, 1}, dead, [], [{{local, firstview}, dead, 1}]},
-	SecondView = {secondview, {view_fsm, start_link, [{local, secondview}, StateData2]}, permanent, 2000, worker,[view_fsm]},
+	StateData = {firstview, {one_for_all, 1}, dead, [secondview], [{view_sup, dead, 1}]},
+	FirstView = {firstview, {view_fsm, start_link, [firstview, StateData]}, permanent, 2000, worker,[view_fsm]},
+	StateData2 = {secondview, {one_for_all, 1}, dead, [], [{firstview, dead, 1}]},
+	SecondView = {secondview, {view_fsm, start_link, [secondview, StateData2]}, permanent, 2000, worker,[view_fsm]},
 	{ok, {{one_for_one,1 ,1},[FirstView, SecondView]}}.
 
 update_firstview(State) ->
-	gen_fsm:send_event({local, firstview}, {view_sup, State}).
+	gen_fsm:send_event(firstview, {view_sup, State}).

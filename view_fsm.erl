@@ -6,18 +6,24 @@
 -export([]).
 -include_lib("eunit/include/eunit.hrl").
 
-start_link({Scope, Name}, StateData) ->
-	gen_fsm:start_link({Scope, Name}, view_fsm, StateData, []).
+start_link(Name, StateData) ->
+	gen_fsm:start_link(Name, ?MODULE, StateData, []).
 
 init(StateData) ->
 	{ok, dead, StateData}.
 
 %% View States 
 alive(Message, StateData) ->
+	{_, _, State, _, _} = StateData,
+	io:format("f: ~w sd: ~w~n", [alive, State]),
 	routine(Message, StateData).
 dead(Message, StateData) ->
+	{_, _, State, _, _} = StateData,
+	io:format("f: ~w sd: ~w~n", [dead, State]),
 	routine(Message, StateData).
 suspicious(Message, StateData) ->
+	{_, _, State, _, _} = StateData,
+	io:format("f: ~w sd: ~w~n", [suspicious, State]),
 	routine(Message, StateData).
 %% 
 
