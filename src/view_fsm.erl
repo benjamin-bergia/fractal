@@ -2,12 +2,10 @@
 -behaviour(gen_fsm).
 
 -export([start_link/2, init/1, alive/2, dead/2, suspicious/2]).
-%%Testing export
--export([]).
 -include_lib("eunit/include/eunit.hrl").
 
-start_link(Name, StateData) ->
-	gen_fsm:start_link(Name, ?MODULE, StateData, []).
+start_link({Scope, Name}, StateData) ->
+	gen_fsm:start_link({Scope, Name}, view_fsm, StateData, []).
 
 init(StateData) ->
 	{ok, dead, StateData}.
@@ -26,10 +24,6 @@ routine(Message, StateData) ->
 	{_, _, NextState, _, _} = NewStateData = update_status(Message, StateData),
 	propagate(NewStateData),
 	{next_state, NextState, NewStateData}.
-routine_test() ->
-	Self = self(),
-	Result = routine({Self, dead}, {Self, {one_for_all, 1}, alive, [], [{Self, alive, 1}]}),
-	{next_state, dead, {Self, {one_for_all, 1}, dead, [], [{Self, dead, 1}]}} = Result.
 %%
 	
 %% Call the different engines and returns the new State Data
@@ -44,25 +38,12 @@ update_status(Message, {Name, {Engine, Threshold}, State, UpperViews, LowerViews
 			NewState = weighted_engine(Threshold, State, NewLowerViews)
 	end,
 	{Name, {Engine, Threshold}, NewState, UpperViews, NewLowerViews}.
-update_status_test() ->
-	Self = self(),
-	{Self, {one_for_all, 1}, dead, [], [{Self, dead, 1}]} = update_status({Self, dead}, {Self, {one_for_all, 1}, alive, [], [{Self, alive, 1}]}).
 %%
 
 %% Send a state update to all the upper views 
-propagate({Name, _, State, UpperViews, _}) ->
-	Send = fun(Target) ->
-			gen_fsm:send_event(Target, {Name, State}),
-			true
-		end,
-	lists:all(Send, UpperViews).
-propagate_test() ->
-	Self = self(),
-	propagate({Self, test, dead, [Self], []}),
-	receive
-		{_,{Self, dead}} ->
-			true
-	end.
+propagate(NewStateData) ->
+	{Name, _, State, UpperViews, _} = NewStateData,
+	[ gen_fsm:send_event(UpperView, {Name, State}) || UpperView <- UpperViews ].
 %%
 
 %% one_for_all: State changes when at least one of the lower Views has a different State
