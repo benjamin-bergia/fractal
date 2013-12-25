@@ -26,6 +26,10 @@ routine(Message, StateData) ->
 	{_, _, NextState, _, _} = NewStateData = update_status(Message, StateData),
 	propagate(NewStateData),
 	{next_state, NextState, NewStateData}.
+routine_test() ->
+	Self = self(),
+	Result = routine({Self, dead}, {Self, {one_for_all, 1}, alive, [], [{Self, alive, 1}]}),
+	{next_state, dead, {Self, {one_for_all, 1}, dead, [], [{Self, dead, 1}]}} = Result.
 %%
 	
 %% Call the different engines and returns the new State Data
