@@ -154,3 +154,6 @@ list_statenames(Views) ->
 	{_, StateNames, _} = lists:unzip3(Views),
 	lists:usort(StateNames).
 
+-ifdef(TEST).
+-include("view_tests.hrl").
+-endif.

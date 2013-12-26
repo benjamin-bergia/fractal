@@ -5,4 +5,4 @@
               {applications,[kernel,stdlib]},
               {mod,{fractal_app,[]}},
               {env,[]},
-              {modules,[fractal_app,fractal_sup,view_fsm,view_sup]}]}.
+              {modules,[fractal_app,fractal_sup,view,view_fsm,view_sup]}]}.
