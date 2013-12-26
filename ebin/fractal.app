@@ -1,5 +1,5 @@
 {application,fractal,
-             [{description,[]},
+             [{description,"Simple monitoring tool"},
               {vsn,"1"},
               {registered,[]},
               {applications,[kernel,stdlib]},
