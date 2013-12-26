@@ -6,13 +6,13 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0]).
+-export([start_link/2]).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, state_name/2, state_name/3, handle_event/3,
+-export([init/1, alive/2, dead/2, suspicious/2, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3,
          code_change/4]).
 
@@ -20,21 +20,21 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link() ->
-    gen_fsm:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Name, State) ->
+    gen_fsm:start_link({local, Name}, ?MODULE, State, []).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 
-init(_Args) ->
-    {ok, initial_state_name, initial_state}.
+init(State) ->
+    {ok, dead, State}.
 
-state_name(_Event, State) ->
-    {next_state, state_name, State}.
-
-state_name(_Event, _From, State) ->
-    {reply, ok, state_name, State}.
+%%state_name(_Event, State) ->
+%%    {next_state, state_name, State}.
+%%
+%%state_name(_Event, _From, State) ->
+%%    {reply, ok, state_name, State}.
 
 alive(Event, State) ->
 	routine(Event, State).

@@ -11,8 +11,9 @@
 
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
--define(VIEW(N, E, W, U, L), {N, {view, start_link, [{N, {E, W}, dead, [?MODULE|U], L}]}, permanent, 5000, worker, [view]}).
+-define(VIEW(N, E, W, U, L), {N, {view, start_link, [N, {N, {E, W}, dead, U, L}]}, permanent, 5000, worker, [view]}).
 %% Name / Engine / Weight / UpperViews / LowerViews 
+-define(LOWERS(N), {N, dead, 1}).
 
 %% ===================================================================
 %% API functions
@@ -26,12 +27,12 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	ViewList = [?VIEW(a, onee_for_all, 1, [ab], [self()]),
-		    ?VIEW(b, onee_for_all, 1, [ab], [self()]),
-		    ?VIEW(ab, onee_for_all, 1, [abcd], [a, b]),
-		    ?VIEW(c, onee_for_all, 1, [cd], [self()]),
-		    ?VIEW(d, onee_for_all, 1, [cd], [self()]),
-		    ?VIEW(cd, onee_for_all, 1, [abcd], [c, d]),
-		    ?VIEW(abcd, onee_for_all, 1, [], [ab, cd])],
+	ViewList = [?VIEW(view0, one_for_all, 1, [], [?LOWERS(view01), ?LOWERS(view02)]),
+		    ?VIEW(view01, one_for_all, 1, [view0], [?LOWERS(view011), ?LOWERS(view012)]),
+		    ?VIEW(view02, one_for_all, 1, [view0], [?LOWERS(view021), ?LOWERS(view022)]),
+		    ?VIEW(view011, one_for_all, 1, [view01], [?LOWERS(view_sup)]),
+		    ?VIEW(view012, one_for_all, 1, [view01], [?LOWERS(view_sup)]),
+		    ?VIEW(view021, one_for_all, 1, [view02], [?LOWERS(view_sup)]),
+		    ?VIEW(view022, one_for_all, 1, [view02], [?LOWERS(view_sup)])],
 	{ok, {{one_for_one, 5, 10}, ViewList}}.
 
