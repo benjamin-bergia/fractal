@@ -6,7 +6,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/2]).
+-export([start_link/1, create_state/1]).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Exports
@@ -17,18 +17,31 @@
          code_change/4]).
 
 %% ------------------------------------------------------------------
+%% State record
+%% ------------------------------------------------------------------
+-record(state, {view_name, engine, threshold, state_name, upper_views, lower_views}).
+
+%% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(Name, State) ->
-    gen_fsm:start_link({local, Name}, ?MODULE, State, []).
+start_link(State) ->
+    gen_fsm:start_link({local, State#state.state_name}, ?MODULE, State, []).
+
+create_state({Name, Engine, Threshold, StateName, UpperViews, LowerViews}) ->
+	#state{view_name=Name,
+	       engine=Engine,
+	       threshold=Threshold,
+	       state_name=StateName,
+	       upper_views=UpperViews,
+	       lower_views=LowerViews}.
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 
 init(State) ->
-    {ok, dead, State}.
+    {ok, State#state.state_name, State}.
 
 %%state_name(_Event, State) ->
 %%    {next_state, state_name, State}.
@@ -64,40 +77,42 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-routine(Event, State) ->
-	{_, _, NewStateName, _, _} = NewState = update_state(Event, State),
+routine(Event, State) when is_record(State, state) ->
+	NewState = update_state(Event, State),
 	propagate(NewState),
-	{next_state, NewStateName, NewState}.
+	{next_state, NewState#state.state_name, NewState}.
 
-update_state(Event,{Name, {Engine, Threshold}, StateName, UpperViews, LowerViews}) ->
-	NewLowerViews = update_lowerviews_state(Event, LowerViews),
-	case Engine of  
+%%update_state(Event,{Name, {Engine, Threshold}, StateName, UpperViews, LowerViews}) ->
+update_state(Event, OldState) ->
+	Current = update_lowerviews_state(Event, OldState),
+	case Current#state.engine of  
 		one_for_all ->
-			NewStateName = one_for_all_engine(StateName, Event);
+			%% In this case we don't care about the state of the other lowerviews
+			NewState = one_for_all_engine(Current, Event);
 		all_for_one ->
-			NewStateName = all_for_one_engine(StateName, NewLowerViews);
+			NewState = all_for_one_engine(Current);
 		weighted ->
-			NewStateName = weighted_engine(StateName, Threshold, NewLowerViews)
+			NewState = weighted_engine(Current)
 	end,
-	{Name, {Engine, Threshold}, NewStateName, UpperViews, NewLowerViews}.
+	NewState.
 
-propagate({Name, _, StateName, UpperViews, _}) ->
+propagate(State) ->
 	Send = fun(Target) ->
-			gen_fsm:send_event(Target, {Name, StateName}),
+			gen_fsm:send_event(Target, {State#state.view_name, State#state.state_name}),
 			true
 		end,
-	lists:all(Send, UpperViews).
+	lists:all(Send, State#state.upper_views).
 
-one_for_all_engine(StateName, {_, ViewStateName}) ->
-	case ViewStateName /= StateName of
+one_for_all_engine(State, {_, ViewStateName}) ->
+	case ViewStateName /= State#state.state_name of
 		true ->
-			ViewStateName;
+			State#state{state_name=ViewStateName};
 		false ->
-			StateName
+			State
 	end.
 
-all_for_one_engine(StateName, LowerViews) ->
-	{_, [NewStateName|StateNames], _} = lists:unzip3(LowerViews),
+all_for_one_engine(State) ->
+	{_, [NewStateName|StateNames], _} = lists:unzip3(State#state.state_name),
 	F = fun(X) when X == NewStateName ->
 			    true;
 	       (_) ->
@@ -105,32 +120,33 @@ all_for_one_engine(StateName, LowerViews) ->
 		end,
 	case lists:all(F, StateNames) of
 		true ->
-			NewStateName;
+			State#state{state_name=NewStateName};
 		false ->
-			StateName
+			State
 	end.
 
-weighted_engine(StateName, Threshold, LowerViews) ->
-	States = list_statenames(LowerViews),
+weighted_engine(State) ->
+	States = list_statenames(State#state.lower_views),
 	F = fun(S) ->
-			sum_weights(S, LowerViews)
+			sum_weights(S, State#state.lower_views)
 		end,
 	StateSums = lists:map(F, States),
 	[{NewStateName, Sum}|[{_, Sum2}]] = inverted_insertion_sort(StateSums),
 	if
-		Sum < Threshold ->
-			StateName;
+		Sum < State#state.threshold ->
+			State;
 		Sum == Sum2 ->
-			suspicious;
-		Sum >= Threshold ->
-			NewStateName
+			State#state{state_name=suspicious};
+		Sum >= State#state.threshold ->
+			State#state{state_name=NewStateName}
 	end.
 
-update_lowerviews_state({View, StateName}, LowerViews) ->
-	lists:keyreplace(View, 1, LowerViews, {View, StateName, get_weight(View, LowerViews)}).
+update_lowerviews_state({View, StateName}, State) ->
+	UpdatedViews = lists:keyreplace(View, 1, State#state.lower_views, {View, StateName, get_weight(View, State#state.lower_views)}),
+	State#state{lower_views=UpdatedViews}.	
 
-get_weight(View, LowerViews) ->
-	{_, _, Weight} = lists:keyfind(View, 1, LowerViews),
+get_weight(ViewName, LowerViews) ->
+	{_, _, Weight} = lists:keyfind(ViewName, 1, LowerViews),
 	Weight.
 
 inverted_insertion_sort(List) ->

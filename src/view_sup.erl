@@ -11,7 +11,7 @@
 
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
--define(VIEW(N, E, W, U, L), {N, {view, start_link, [N, {N, {E, W}, dead, U, L}]}, permanent, 5000, worker, [view]}).
+-define(VIEW(N, E, T, U, L), {N, {view, start_link, [view:create_state({N, E, T, dead, U, L})]}, permanent, 5000, worker, [view]}).
 %% Name / Engine / Weight / UpperViews / LowerViews 
 -define(LOWERS(N), {N, dead, 1}).
 

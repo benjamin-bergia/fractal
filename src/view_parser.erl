@@ -49,6 +49,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% ------------------------------------------------------------------
 
 
--ifdef(TEST).
--include("view_parser_tests.hrl").
--endif.
+%%-ifdef(TEST).
+%%-include("view_parser_tests.hrl").
+%%-endif.

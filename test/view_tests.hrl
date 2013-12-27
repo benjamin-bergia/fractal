@@ -15,7 +15,8 @@ update_state_test() ->
 
 propagate_test() ->
 	Self = self(),
-	propagate({Self, test, dead, [Self], []}),
+	State = #state{view_name=test, state_name=dead, upper_views=Self},
+	propagate(State),
 	receive
 		{_,{Self, dead}} ->
 			true
@@ -26,22 +27,23 @@ one_for_all_engine_test() ->
         alive = one_for_all_engine(alive, {"view", alive}).
 
 all_for_one_engine_test() ->
+	State = #state{state_name=dead},
         LowerViews = [{one, alive, 1}, {two, dead, 2}, {three, alive, 1}],
         LowerViews2 = [{one, alive, 1}, {two, alive, 3}, {three, alive, 1}],
-        dead = all_for_one_engine(dead, LowerViews),
-        alive = all_for_one_engine(dead, LowerViews2).
+	#state{state_name=dead, lower_views=LowerViews} = all_for_one_engine(State#state{lower_views=LowerViews}),
+	#state{state_name=alive, lower_views=LowerViews2} = all_for_one_engine(State#state{lower_views=LowerViews2}).
 
 weighted_engine_test() ->
+	State = #state{state_name=alive},
         LowerViews = [{one, alive, 1}, {two, dead, 2}, {three, alive, 1}],
         LowerViews2 = [{one, alive, 1}, {two, dead, 3}, {three, alive, 1}],
-        suspicious = weighted_engine(alive, 2, LowerViews),
-        alive = weighted_engine(alive, 5, LowerViews),
-        dead = weighted_engine(alive, 1, LowerViews2).
+	#state{state_name=suspicious, lower_views=LowerViews, threshold=2} = weighted_engine(State#state{lower_views=LowerViews, threshold=2}),
+	#state{state_name=alive, lower_views=LowerViews, threshold=5} = weighted_engine(State#state{lower_views=LowerViews, threshold=5}),
+	#state{state_name=dead, lower_views=LowerViews2, threshold=1} = weighted_engine(State#state{lower_views=LowerViews2, threshold=1}).
 
 update_lowerviews_state_test() ->
-        LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
-        Result = [{"first", alive, 1}, {"myview", suscpicious, 2}, {myview, alive, 1}],
-        Result = update_lowerviews_state({"myview", suscpicious}, LowerViews).
+	State#state{lower_views=[{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}]}
+	#state{lower_views=[{"first", alive, 1}, {"myview", suscpicious, 2}, {myview, alive, 1}]} = update_lowerviews_state({"myview", suscpicious}, State).
 
 get_weight_test() ->
         LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],
