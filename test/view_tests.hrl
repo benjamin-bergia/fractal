@@ -5,45 +5,54 @@
 %% ------------------------------------------------------------------
 
 routine_test() ->
-	Self = self(),
-	Result = routine({Self, dead}, {Self, {one_for_all, 1}, alive, [], [{Self, alive, 1}]}),
-	{next_state, dead, {Self, {one_for_all, 1}, dead, [], [{Self, dead, 1}]}} = Result.
+ 	Self = self(),
+ 	State = #state{view_name=Self, engine=one_for_all, threshold=1, state_name=alive, upper_views=[], lower_views=[{Self, alive, 1}]},
+ 	NewState = State#state{state_name=dead, lower_views=[{Self, dead, 1}]},
+ 	Result = {next_state, dead, NewState },
+ 	Result = routine({Self, dead}, State).
 
 update_state_test() ->
 	Self = self(),
-	{Self, {one_for_all, 1}, dead, [], [{Self, dead, 1}]} = update_state({Self, dead}, {Self, {one_for_all, 1}, alive, [], [{Self, alive, 1}]}).
+	State = #state{view_name=Self, engine=one_for_all, threshold=1, state_name=alive, upper_views=[], lower_views=[{Self, alive, 1}]},
+	Result = State#state{state_name=dead, lower_views=[{Self, dead, 1}]},
+	Result = update_state({Self, dead}, State).
 
 propagate_test() ->
 	Self = self(),
-	State = #state{view_name=test, state_name=dead, upper_views=Self},
+	State = #state{view_name=test, state_name=dead, upper_views=[Self]},
 	propagate(State),
 	receive
-		{_,{Self, dead}} ->
+		{_,{test, dead}} ->
 			true
 	end.
 
 one_for_all_engine_test() ->
-        dead = one_for_all_engine(alive, {"view", dead}),
-        alive = one_for_all_engine(alive, {"view", alive}).
+	State = #state{state_name=alive},
+	Result = State#state{state_name=dead},
+        Result = one_for_all_engine(State, {"view", dead}),
+        State = one_for_all_engine(State, {"view", alive}).
 
 all_for_one_engine_test() ->
-	State = #state{state_name=dead},
-        LowerViews = [{one, alive, 1}, {two, dead, 2}, {three, alive, 1}],
-        LowerViews2 = [{one, alive, 1}, {two, alive, 3}, {three, alive, 1}],
-	#state{state_name=dead, lower_views=LowerViews} = all_for_one_engine(State#state{lower_views=LowerViews}),
-	#state{state_name=alive, lower_views=LowerViews2} = all_for_one_engine(State#state{lower_views=LowerViews2}).
+	State = #state{state_name=dead, lower_views=[{one, alive, 1}, {two, dead, 2}, {three, alive, 1}]},
+	State2 = State#state{lower_views=[{one, alive, 1}, {two, alive, 3}, {three, alive, 1}]},
+	State = all_for_one_engine(State),
+	State3 = State2#state{state_name=alive},
+	State3 = all_for_one_engine(State2).
 
 weighted_engine_test() ->
-	State = #state{state_name=alive},
-        LowerViews = [{one, alive, 1}, {two, dead, 2}, {three, alive, 1}],
+	State = #state{state_name=alive, lower_views=[{one, alive, 1}, {two, dead, 2}, {three, alive, 1}]},
         LowerViews2 = [{one, alive, 1}, {two, dead, 3}, {three, alive, 1}],
-	#state{state_name=suspicious, lower_views=LowerViews, threshold=2} = weighted_engine(State#state{lower_views=LowerViews, threshold=2}),
-	#state{state_name=alive, lower_views=LowerViews, threshold=5} = weighted_engine(State#state{lower_views=LowerViews, threshold=5}),
-	#state{state_name=dead, lower_views=LowerViews2, threshold=1} = weighted_engine(State#state{lower_views=LowerViews2, threshold=1}).
+	State2 = State#state{state_name=suspicious, threshold=2},
+	State2 = weighted_engine(State#state{threshold=2}),
+	State3 = State#state{state_name=alive, threshold=5},
+	State3 = weighted_engine(State#state{threshold=5}),
+	State4 = State#state{state_name=dead, lower_views=LowerViews2, threshold=1},
+	State4 = weighted_engine(State#state{lower_views=LowerViews2, threshold=1}).
 
 update_lowerviews_state_test() ->
-	State#state{lower_views=[{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}]}
-	#state{lower_views=[{"first", alive, 1}, {"myview", suscpicious, 2}, {myview, alive, 1}]} = update_lowerviews_state({"myview", suscpicious}, State).
+	State = #state{lower_views=[{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}]},
+	State2 = #state{lower_views=[{"first", alive, 1}, {"myview", suscpicious, 2}, {myview, alive, 1}]},
+	State2 = update_lowerviews_state({"myview", suscpicious}, State).
 
 get_weight_test() ->
         LowerViews = [{"first", alive, 1}, {"myview", dead, 2}, {myview, alive, 1}],

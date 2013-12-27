@@ -112,7 +112,7 @@ one_for_all_engine(State, {_, ViewStateName}) ->
 	end.
 
 all_for_one_engine(State) ->
-	{_, [NewStateName|StateNames], _} = lists:unzip3(State#state.state_name),
+	{_, [NewStateName|StateNames], _} = lists:unzip3(State#state.lower_views),
 	F = fun(X) when X == NewStateName ->
 			    true;
 	       (_) ->
