@@ -26,10 +26,10 @@
 %% ------------------------------------------------------------------
 
 start_link(State) ->
-    gen_fsm:start_link({local, State#state.state_name}, ?MODULE, State, []).
+    gen_fsm:start_link({local, State#state.view_name}, ?MODULE, State, []).
 
-create_state({Name, Engine, Threshold, StateName, UpperViews, LowerViews}) ->
-	#state{view_name=Name,
+create_state({ViewName, Engine, Threshold, StateName, UpperViews, LowerViews}) ->
+	#state{view_name=ViewName,
 	       engine=Engine,
 	       threshold=Threshold,
 	       state_name=StateName,
