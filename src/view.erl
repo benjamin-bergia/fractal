@@ -1,6 +1,7 @@
 -module(view).
 -behaviour(gen_fsm).
 -define(SERVER, ?MODULE).
+-define(STORE, state_store).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -83,6 +84,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 routine(Event, State) when is_record(State, state) ->
 	NewState = update_state(Event, State),
 	propagate(NewState),
+	gen_server:call(?STORE, {set, NewState}),
 	{next_state, NewState#state.state_name, NewState}.
 
 %%update_state(Event,{Name, {Engine, Threshold}, StateName, UpperViews, LowerViews}) ->
