@@ -1,12 +1,13 @@
 -module(view).
 -behaviour(gen_fsm).
 -define(SERVER, ?MODULE).
+-define(STORE, state_store).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1, create_state/1]).
+-export([start_link/1, create_state/1, generate_fields/0]).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Exports
@@ -35,6 +36,9 @@ create_state({ViewName, Engine, Threshold, StateName, UpperViews, LowerViews}) -
 	       state_name=StateName,
 	       upper_views=UpperViews,
 	       lower_views=LowerViews}.
+
+generate_fields() ->
+	record_info(fields, state).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
@@ -80,6 +84,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 routine(Event, State) when is_record(State, state) ->
 	NewState = update_state(Event, State),
 	propagate(NewState),
+	gen_server:call(?STORE, {set, NewState}),
 	{next_state, NewState#state.state_name, NewState}.
 
 %%update_state(Event,{Name, {Engine, Threshold}, StateName, UpperViews, LowerViews}) ->
