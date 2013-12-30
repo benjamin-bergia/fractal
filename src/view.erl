@@ -1,5 +1,6 @@
 -module(view).
 -behaviour(gen_fsm).
+-include("state.hrl").
 -define(SERVER, ?MODULE).
 -define(STORE, state_store).
 
@@ -7,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1, create_state/1, generate_fields/0]).
+-export([start_link/1]).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Exports
@@ -18,27 +19,11 @@
          code_change/4]).
 
 %% ------------------------------------------------------------------
-%% State record
-%% ------------------------------------------------------------------
--record(state, {view_name, engine, threshold, state_name, upper_views, lower_views}).
-
-%% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
 start_link(State) ->
     gen_fsm:start_link({local, State#state.view_name}, ?MODULE, State, []).
-
-create_state({ViewName, Engine, Threshold, StateName, UpperViews, LowerViews}) ->
-	#state{view_name=ViewName,
-	       engine=Engine,
-	       threshold=Threshold,
-	       state_name=StateName,
-	       upper_views=UpperViews,
-	       lower_views=LowerViews}.
-
-generate_fields() ->
-	record_info(fields, state).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions

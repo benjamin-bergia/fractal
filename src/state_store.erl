@@ -1,5 +1,6 @@
 -module(state_store).
 -behaviour(gen_server).
+-include("state.hrl").
 -define(SERVER, ?MODULE).
 -define(DB, "/tmp/mnesia").
 
@@ -71,7 +72,7 @@ install() ->
 	mnesia:create_schema([node()]),
 	application:start(mnesia),
 	%%mnesia:create_table(state, [{disc_copies, [node()]}, {ram_copies, [node()]}, {type, set}, {attributes, record_info(fields, state)}, {index, [view_name]}]),
-	mnesia:create_table(state, [{attributes, view:generate_fields()}, {disc_copies ,nodes()}]).
+	mnesia:create_table(state, [{attributes, record_info(fields, state)}, {disc_copies ,nodes()}]).
 
 set_state(State) ->
 	Write = fun() ->
