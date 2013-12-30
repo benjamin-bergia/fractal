@@ -1,8 +1,7 @@
 -module(view).
--behaviour(gen_fsm).
--define(SERVER, ?MODULE).
+-behaviour(gen_server).
 -define(STORE, state_store).
--define(GP_VIEW(N), {n,l,N}).
+-define(GP_NL(N), {n,l,N}).
 
 %% Import the state record
 -include("state.hrl").
@@ -11,79 +10,64 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1]).
+-export([start_link/0]).
 
 %% ------------------------------------------------------------------
-%% gen_fsm Function Exports
+%% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, alive/2, dead/2, suspicious/2, handle_event/3,
-         handle_sync_event/4, handle_info/3, terminate/3,
-         code_change/4]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(State) ->
-    gen_fsm:start_link(?MODULE, State, []).
+start_link() ->
+    gen_server:start_link(?MODULE, [], []).
 
 %% ------------------------------------------------------------------
-%% gen_fsm Function Definitions
+%% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(State) ->
-	gproc:reg({n, l, State#state.view_name}),
-    	{ok, State#state.state_name, State}.
+init(S) ->
+	gproc:reg(?GP_NL(S#state.view_name)),
+    	{ok, S}.
 
-%%state_name(_Event, State) ->
-%%    {next_state, state_name, State}.
-%%
-%%state_name(_Event, _From, State) ->
-%%    {reply, ok, state_name, State}.
+handle_call(_Request, _From, State) ->
+	{reply, ok, State}.
 
-alive(Event, State) ->
-	routine(Event, State).
+handle_cast({status_change, _From, _StateName}=Msg, State) ->
+	routine(Msg, State),
+    	{noreply, State}.
 
-dead(Event, State) ->
-	routine(Event, State).
+handle_info(_Info, State) ->
+    	{noreply, State}.
 
-suspicious(Event, State) ->
-	routine(Event, State).
+terminate(_Reason, _State) ->
+    	ok.
 
-handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State}.
-
-handle_sync_event(_Event, _From, StateName, State) ->
-    {reply, ok, StateName, State}.
-
-handle_info(_Info, StateName, State) ->
-    {next_state, StateName, State}.
-
-terminate(_Reason, _StateName, _State) ->
-    ok.
-
-code_change(_OldVsn, StateName, State, _Extra) ->
-    {ok, StateName, State}.
+code_change(_OldVsn, State, _Extra) ->
+    	{ok, State}.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
 %% Core fonction called by all the state fonctions
-routine(Event, State) when is_record(State, state) ->
-	NewState = select_engine(Event, State),
+routine(Msg, State) when is_record(State, state) ->
+	NewState = select_engine(Msg, State),
 	propagate(NewState),
 	gen_server:call(?STORE, {set, NewState}),
 	{next_state, NewState#state.state_name, NewState}.
 
 %% This function call the engine specified in state record
-select_engine(Event, OldState) ->
-	Current = update_lowerviews_state(Event, OldState),
+select_engine(Msg, OldState) ->
+	Current = update_lowerviews_state(Msg, OldState),
 	case Current#state.engine of  
 		one_for_all ->
 			%% In this case we don't care about the state of the other lowerviews
-			NewState = one_for_all_engine(Current, Event);
+			NewState = one_for_all_engine(Current, Msg);
 		all_for_one ->
 			NewState = all_for_one_engine(Current);
 		weighted ->
@@ -94,14 +78,14 @@ select_engine(Event, OldState) ->
 %% Send the new state_name to the upper views
 propagate(State) ->
 	Send = fun(Target) ->
-			[{Pid, _Value}|_T] = gproc:lookup_values(?GP_VIEW(Target)),
-			gen_fsm:send_event(Pid, {State#state.view_name, State#state.state_name}),
+			[{Pid, _Value}|_T] = gproc:lookup_values(?GP_NL(Target)),
+			gen_fsm:send_event(Pid, {state_update, State#state.view_name, State#state.state_name}),
 			true
 		end,
 	lists:all(Send, State#state.upper_views).
 
 %% First possible engine: when the sate_name received from the lowerview is different that the current one, the state_name is changed
-one_for_all_engine(State, {_, ViewStateName}) ->
+one_for_all_engine(State, {state_update, _ViewName, ViewStateName}) ->
 	case ViewStateName /= State#state.state_name of
 		true ->
 			State#state{state_name=ViewStateName};
@@ -131,7 +115,7 @@ weighted_engine(State) ->
 			sum_weights(S, State#state.lower_views)
 		end,
 	StateSums = lists:map(F, States),
-	[{NewStateName, Sum}|[{_, Sum2}]] = inverted_insertion_sort(StateSums),
+	[{NewStateName, Sum}|[{_StateName, Sum2}]] = inverted_insertion_sort(StateSums),
 	if
 		Sum < State#state.threshold ->
 			State;
@@ -142,13 +126,13 @@ weighted_engine(State) ->
 	end.
 
 %% Update the lower_views
-update_lowerviews_state({View, StateName}, State) ->
+update_lowerviews_state({state_update, View, StateName}, State) ->
 	UpdatedViews = lists:keyreplace(View, 1, State#state.lower_views, {View, StateName, get_weight(View, State#state.lower_views)}),
 	State#state{lower_views=UpdatedViews}.	
 
 %% Return the weight of a specific lower view
 get_weight(ViewName, LowerViews) ->
-	{_, _, Weight} = lists:keyfind(ViewName, 1, LowerViews),
+	{_ViewName, _StateName, Weight} = lists:keyfind(ViewName, 1, LowerViews),
 	Weight.
 
 %% Sort a list of 2-Tuples using the second element of the tuple 
@@ -163,7 +147,7 @@ inverted_insertion(Acc,[H|T]) ->
 
 %% Sum the weights of all the lower views in a specific state_name
 sum_weights(StateName, ViewList) ->
-	Sum = fun({_, X, Weight}, WeightSum) when X == StateName ->
+	Sum = fun({_ViewName, X, Weight}, WeightSum) when X == StateName ->
 			Weight + WeightSum;
 		(_, WeightSum) ->
 			WeightSum
@@ -172,7 +156,7 @@ sum_weights(StateName, ViewList) ->
 
 %% List the different state_name present in lower_views
 list_statenames(Views) ->
-	{_, StateNames, _} = lists:unzip3(Views),
+	{_ViewNames, StateNames, _Weights} = lists:unzip3(Views),
 	lists:usort(StateNames).
 
 %% Include the unit tests 
