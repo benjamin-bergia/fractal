@@ -1,6 +1,6 @@
 -module(view).
 -behaviour(gen_server).
--define(STORE, state_store).
+-define(STORE, storage).
 %% Local Name tuple for gproc
 -define(GP_NL(N), {n,l,N}). 
 %% Main loop Timeout
@@ -33,23 +33,20 @@ start_link() ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(State) ->
+init(State) when is_record(State, state) ->
 	gproc:reg(?GP_NL(State#state.view_name)),
-    	{ok, State, ?TIMEOUT}.
+    	{ok, State#state{state_name=dead}, ?TIMEOUT}. % Default state at initialization should be dead
 
 handle_call(_Request, _From, State) ->
 	{reply, ok, State}.
 
-handle_cast({status_change, _From, _StateName}=Msg, State) ->
-	routine(Msg, State),
+handle_cast(Msg, OldState) ->
+	State = select_engine(Msg, OldState),
+	propagate(State),
     	{noreply, State}.
 
-handle_info(Info, State) ->
-	case Info of
-		timeout ->
-			propagate(State)
-	end,
-    	{noreply, State}.
+handle_info(timeout, State) ->
+	propagate(State).
 
 terminate(_Reason, _State) ->
     	ok.
@@ -60,13 +57,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
-
-%% Core fonction
-routine(Msg, State) when is_record(State, state) ->
-	NewState = select_engine(Msg, State),
-	propagate(NewState),
-	gen_server:call(?STORE, {set, NewState}),
-	{next_state, NewState#state.state_name, NewState}.
 
 %% This function call the engine specified in state record
 select_engine(Msg, OldState) ->
@@ -84,6 +74,7 @@ select_engine(Msg, OldState) ->
 
 %% Send the new state_name to the upper views
 propagate(State) ->
+	gen_server:call(?STORE, {set_state, State}), % First update the state in mnesia 
 	Send = fun(Target) ->
 			[{Pid, _Value}|_T] = gproc:lookup_values(?GP_NL(Target)),
 			gen_fsm:send_event(Pid, {state_update, State#state.view_name, State#state.state_name}),

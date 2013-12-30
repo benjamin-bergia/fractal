@@ -27,7 +27,7 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	State = #state{engine=one_for_all, threshold=1, state_name=dead},
+	State = #state{engine=one_for_all, threshold=1},
 	ViewList = [?VIEW(State#state{view_name=view000, lower_views=[?LOWERS(view01), ?LOWERS(view02)]}),
 		    ?VIEW(State#state{view_name=view010, upper_views=[view0], lower_views=[?LOWERS(view011), ?LOWERS(view012)]}),
 		    ?VIEW(State#state{view_name=view020, upper_views=[view0], lower_views=[?LOWERS(view021), ?LOWERS(view022)]}),
