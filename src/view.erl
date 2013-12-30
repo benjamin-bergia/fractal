@@ -1,8 +1,11 @@
 -module(view).
 -behaviour(gen_fsm).
--include("state.hrl").
 -define(SERVER, ?MODULE).
 -define(STORE, state_store).
+-define(GP_VIEW(N), {n,l,N}).
+
+%% Import the state record
+-include("state.hrl").
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -23,14 +26,15 @@
 %% ------------------------------------------------------------------
 
 start_link(State) ->
-    gen_fsm:start_link({local, State#state.view_name}, ?MODULE, State, []).
+    gen_fsm:start_link(?MODULE, State, []).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 
 init(State) ->
-    {ok, State#state.state_name, State}.
+	gproc:reg({n, l, State#state.view_name}),
+    	{ok, State#state.state_name, State}.
 
 %%state_name(_Event, State) ->
 %%    {next_state, state_name, State}.
@@ -66,14 +70,15 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
+%% Core fonction called by all the state fonctions
 routine(Event, State) when is_record(State, state) ->
-	NewState = update_state(Event, State),
+	NewState = select_engine(Event, State),
 	propagate(NewState),
 	gen_server:call(?STORE, {set, NewState}),
 	{next_state, NewState#state.state_name, NewState}.
 
-%%update_state(Event,{Name, {Engine, Threshold}, StateName, UpperViews, LowerViews}) ->
-update_state(Event, OldState) ->
+%% This function call the engine specified in state record
+select_engine(Event, OldState) ->
 	Current = update_lowerviews_state(Event, OldState),
 	case Current#state.engine of  
 		one_for_all ->
@@ -86,13 +91,16 @@ update_state(Event, OldState) ->
 	end,
 	NewState.
 
+%% Send the new state_name to the upper views
 propagate(State) ->
 	Send = fun(Target) ->
-			gen_fsm:send_event(Target, {State#state.view_name, State#state.state_name}),
+			[{Pid, _Value}|_T] = gproc:lookup_values(?GP_VIEW(Target)),
+			gen_fsm:send_event(Pid, {State#state.view_name, State#state.state_name}),
 			true
 		end,
 	lists:all(Send, State#state.upper_views).
 
+%% First possible engine: when the sate_name received from the lowerview is different that the current one, the state_name is changed
 one_for_all_engine(State, {_, ViewStateName}) ->
 	case ViewStateName /= State#state.state_name of
 		true ->
@@ -101,6 +109,7 @@ one_for_all_engine(State, {_, ViewStateName}) ->
 			State
 	end.
 
+%% The state_name change if all the lower_views have the a state_name different that the current one. 
 all_for_one_engine(State) ->
 	{_, [NewStateName|StateNames], _} = lists:unzip3(State#state.lower_views),
 	F = fun(X) when X == NewStateName ->
@@ -115,6 +124,7 @@ all_for_one_engine(State) ->
 			State
 	end.
 
+%% Change the state_name if the some of th weights of the lower_views sharing a same state_name is greater than threshold
 weighted_engine(State) ->
 	States = list_statenames(State#state.lower_views),
 	F = fun(S) ->
@@ -131,14 +141,17 @@ weighted_engine(State) ->
 			State#state{state_name=NewStateName}
 	end.
 
+%% Update the lower_views
 update_lowerviews_state({View, StateName}, State) ->
 	UpdatedViews = lists:keyreplace(View, 1, State#state.lower_views, {View, StateName, get_weight(View, State#state.lower_views)}),
 	State#state{lower_views=UpdatedViews}.	
 
+%% Return the weight of a specific lower view
 get_weight(ViewName, LowerViews) ->
 	{_, _, Weight} = lists:keyfind(ViewName, 1, LowerViews),
 	Weight.
 
+%% Sort a list of 2-Tuples using the second element of the tuple 
 inverted_insertion_sort(List) ->
 	lists:foldl(fun inverted_insertion/2, [], List).
 inverted_insertion(Acc, []) ->
@@ -148,6 +161,7 @@ inverted_insertion(Acc={_, AccSecond}, List=[{_, Second}|_]) when AccSecond >= S
 inverted_insertion(Acc,[H|T]) ->
 	[H|inverted_insertion(Acc, T)].
 
+%% Sum the weights of all the lower views in a specific state_name
 sum_weights(StateName, ViewList) ->
 	Sum = fun({_, X, Weight}, WeightSum) when X == StateName ->
 			Weight + WeightSum;
@@ -156,10 +170,12 @@ sum_weights(StateName, ViewList) ->
 		end,
 	{StateName, lists:foldl(Sum, 0, ViewList)}.
 
+%% List the different state_name present in lower_views
 list_statenames(Views) ->
 	{_, StateNames, _} = lists:unzip3(Views),
 	lists:usort(StateNames).
 
+%% Include the unit tests 
 -ifdef(TEST).
 -include("view_tests.hrl").
 -endif.
