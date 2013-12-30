@@ -1,7 +1,10 @@
 -module(view).
 -behaviour(gen_server).
 -define(STORE, state_store).
--define(GP_NL(N), {n,l,N}).
+%% Local Name tuple for gproc
+-define(GP_NL(N), {n,l,N}). 
+%% Main loop Timeout
+-define(TIMEOUT, 30000).
 
 %% Import the state record
 -include("state.hrl").
@@ -30,9 +33,9 @@ start_link() ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(S) ->
-	gproc:reg(?GP_NL(S#state.view_name)),
-    	{ok, S}.
+init(State) ->
+	gproc:reg(?GP_NL(State#state.view_name)),
+    	{ok, State, ?TIMEOUT}.
 
 handle_call(_Request, _From, State) ->
 	{reply, ok, State}.
@@ -41,7 +44,11 @@ handle_cast({status_change, _From, _StateName}=Msg, State) ->
 	routine(Msg, State),
     	{noreply, State}.
 
-handle_info(_Info, State) ->
+handle_info(Info, State) ->
+	case Info of
+		timeout ->
+			propagate(State)
+	end,
     	{noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -54,7 +61,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-%% Core fonction called by all the state fonctions
+%% Core fonction
 routine(Msg, State) when is_record(State, state) ->
 	NewState = select_engine(Msg, State),
 	propagate(NewState),
@@ -66,7 +73,7 @@ select_engine(Msg, OldState) ->
 	Current = update_lowerviews_state(Msg, OldState),
 	case Current#state.engine of  
 		one_for_all ->
-			%% In this case we don't care about the state of the other lowerviews
+			% In this case we don't care about the state of the other lowerviews
 			NewState = one_for_all_engine(Current, Msg);
 		all_for_one ->
 			NewState = all_for_one_engine(Current);
