@@ -39,9 +39,7 @@ handle_call(Request, _From, State) ->
 		{set_state, ViewState} ->
 			set_state(ViewState);
 		{get_state, ViewName} ->
-			get_state(ViewName);
-		{set_sup, Msg} ->
-			set_sup(Msg)
+			get_state(ViewName)
 	end,
     	{reply, ok, State}.
 
@@ -86,5 +84,3 @@ get_state(ViewName) ->
 			mnesia:read({state, ViewName})
 		end,
 	mnesia:transaction(Read).
-
-set_sup({Supervisor, View})

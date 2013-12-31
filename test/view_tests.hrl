@@ -11,11 +11,11 @@ routine_test() ->
  	Result = {next_state, dead, NewState },
  	Result = routine({Self, dead}, State).
 
-update_state_test() ->
+select_engine_test() ->
 	Self = self(),
 	State = #state{view_name=Self, engine=one_for_all, threshold=1, state_name=alive, upper_views=[], lower_views=[{Self, alive, 1}]},
 	Result = State#state{state_name=dead, lower_views=[{Self, dead, 1}]},
-	Result = update_state({Self, dead}, State).
+	Result = select_engine({Self, dead}, State).
 
 propagate_test() ->
 	Self = self(),

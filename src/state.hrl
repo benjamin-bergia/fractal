@@ -1,4 +1,4 @@
 %% ------------------------------------------------------------------
 %% State record
 %% ------------------------------------------------------------------
--record(state, {view_name, engine, threshold, state_name, upper_views, lower_views}).
+-record(state, {view_name, engine=one_for_all, threshold=1, state_name=dead, upper_views=[], lower_views=[]}).

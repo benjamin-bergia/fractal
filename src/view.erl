@@ -4,7 +4,7 @@
 %% Local Name tuple for gproc
 -define(GP_NL(N), {n,l,N}). 
 %% Main loop Timeout
--define(TIMEOUT, 30000).
+-define(TIMEOUT, 10000).
 
 %% Import the state record
 -include("state.hrl").
@@ -13,7 +13,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0]).
+-export([start_link/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -26,14 +26,14 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+start_link(State) when is_record(State, state) ->
+    gen_server:start_link(?MODULE, State, []).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(State) when is_record(State, state) ->
+init(State) ->
 	gproc:reg(?GP_NL(State#state.view_name)),
     	{ok, State#state{state_name=dead}, ?TIMEOUT}. % Default state at initialization should be dead
 
@@ -46,7 +46,8 @@ handle_cast(Msg, OldState) ->
     	{noreply, State}.
 
 handle_info(timeout, State) ->
-	propagate(State).
+	propagate(State),
+	{noreply, State}.	
 
 terminate(_Reason, _State) ->
     	ok.
@@ -75,12 +76,19 @@ select_engine(Msg, OldState) ->
 %% Send the new state_name to the upper views
 propagate(State) ->
 	gen_server:call(?STORE, {set_state, State}), % First update the state in mnesia 
-	Send = fun(Target) ->
-			[{Pid, _Value}|_T] = gproc:lookup_values(?GP_NL(Target)),
-			gen_fsm:send_event(Pid, {state_update, State#state.view_name, State#state.state_name}),
-			true
-		end,
-	lists:all(Send, State#state.upper_views).
+	case State#state.upper_views of
+		[] ->
+			true;
+		_ ->
+			Msg = {state_update, State#state.view_name, State#state.state_name},
+			Send = fun(Target) ->
+					Pid = gproc:lookup_pid(?GP_NL(Target)),
+					gen_server:cast(Pid, Msg),
+					true
+				end,
+			lists:all(Send, State#state.upper_views)
+		
+	end.
 
 %% First possible engine: when the sate_name received from the lowerview is different that the current one, the state_name is changed
 one_for_all_engine(State, {state_update, _ViewName, ViewStateName}) ->
@@ -123,9 +131,10 @@ weighted_engine(State) ->
 			State#state{state_name=NewStateName}
 	end.
 
-%% Update the lower_views
-update_lowerviews_state({state_update, View, StateName}, State) ->
-	UpdatedViews = lists:keyreplace(View, 1, State#state.lower_views, {View, StateName, get_weight(View, State#state.lower_views)}),
+%% Update the lower_viewis
+update_lowerviews_state({state_update, ViewName, StateName}, State) ->
+	ViewWeight = get_weight(ViewName, State#state.lower_views),
+	UpdatedViews = lists:keyreplace(ViewName, 1, State#state.lower_views, {ViewName, StateName, ViewWeight}),
 	State#state{lower_views=UpdatedViews}.	
 
 %% Return the weight of a specific lower view
