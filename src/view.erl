@@ -1,6 +1,6 @@
 -module(view).
 -behaviour(gen_server).
--define(STORE, storage).
+-define(STATESTORE, state_store).
 %% Local Name tuple for gproc
 -define(GP_NL(N), {n,l,N}). 
 %% Main loop Timeout
@@ -75,7 +75,7 @@ select_engine(Msg, OldState) ->
 
 %% Send the new state_name to the upper views
 propagate(State) ->
-	gen_server:call(?STORE, {set_state, State}), % First update the state in mnesia 
+	gen_server:cast(?STATESTORE, {set_state, State}), % First update the state in mnesia 
 	case State#state.upper_views of
 		[] ->
 			true;

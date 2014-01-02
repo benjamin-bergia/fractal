@@ -14,10 +14,7 @@
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
-
--export([start/0, stop/0, install/0, set_state/1, get_state/1]).
+-export([init/1, handle_cast/2, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -34,27 +31,13 @@ init(Args) ->
 	start(),
     	{ok, Args}.
 
-handle_call(Request, _From, State) ->
-	case Request of
-		{set_state, ViewState} ->
-			set_state(ViewState);
-		{get_state, ViewName} ->
-			get_state(ViewName)
-	end,
-    	{reply, ok, State}.
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_cast({set, state, ViewState}, State) ->
+	set_state(ViewState),
+    	{noreply, State}.
 
 terminate(_Reason, _State) ->
 	stop(),
     	ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
@@ -62,25 +45,12 @@ code_change(_OldVsn, State, _Extra) ->
 
 start() ->
 	application:set_env(mnesia, dir, ?DB),
-	application:start(mnesia).
+	mnesia:create_schema([node()]),
+	application:start(mnesia),
+	mnesia:create_table(state, [{attributes, record_info(fields, state)}]).
 
 stop() ->
 	application:stop(mnesia).
- 
-install() ->
-	application:set_env(mnesia, dir, ?DB),
-	mnesia:create_schema([node()]),
-	application:start(mnesia),
-	mnesia:create_table(state, [{attributes, record_info(fields, state)}, {disc_copies ,nodes()}]).
 
 set_state(State) ->
-	Write = fun() ->
-			mnesia:write(State)
-		end,
-	mnesia:transaction(Write).
-
-get_state(ViewName) ->
-	Read = fun() ->
-			mnesia:read({state, ViewName})
-		end,
-	mnesia:transaction(Read).
+	writer:start(State).
