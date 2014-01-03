@@ -9,11 +9,10 @@
 -export([init/1]).
 
 -include("state.hrl").
+
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 -define(VIEW(S), {S#state.view_name, {view, start_link, [S]}, permanent, 5000, worker, [view]}).
-%% Name / Engine / Weight / UpperViews / LowerViews 
--define(LOWERS(L), {L, dead, 1}).
 
 %% ===================================================================
 %% API functions
