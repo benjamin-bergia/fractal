@@ -2,7 +2,7 @@
 -export([get_config/1, parse/1, parse/3]).
 -include("state.hrl").
 -define(LOWER(N, W), {N, dead, W}).
--define(STATE(N, E, T, U, L), #state{view_name=N, threshold=T, engine=E, upper_views=U, lower_views=[?LOWER(view_sup, 1)|L]}).
+-define(STATE(N, E, T, U, L), #state{view_name=N, threshold=T, engine=E, upper_views=U, lower_views=[?LOWER(dispatcher, 1)|L]}).
 -define(TIMEOUT, 5000).
 
 get_config(File) ->

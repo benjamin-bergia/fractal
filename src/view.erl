@@ -176,6 +176,11 @@ list_statenames(Views) ->
 	{_ViewNames, StateNames, _Weights} = lists:unzip3(Views),
 	lists:usort(StateNames).
 
+%% Cast Wrapper
+notify(ViewName, From, StateName) ->
+	{ok, Pid} = gproc:lookup_ip(?GP_NL(ViewName)),
+	gen_server:cast(Pid, {state_update, From, StateName}).
+
 %% Include the unit tests 
 -ifdef(TEST).
 -include("view_tests.hrl").
