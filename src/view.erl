@@ -121,14 +121,24 @@ weighted_engine(State) ->
 			sum_weights(S, State#state.lower_views)
 		end,
 	StateSums = lists:map(F, States),
-	[{NewStateName, Sum}|[{_StateName, Sum2}]] = inverted_insertion_sort(StateSums),
-	if
-		Sum < State#state.threshold ->
-			State;
-		Sum == Sum2 ->
-			State#state{state_name=suspicious};
-		Sum >= State#state.threshold ->
-			State#state{state_name=NewStateName}
+	Sorted = inverted_insertion_sort(StateSums),
+	case Sorted of
+		[{NewStateName, Sum}|[{_StateName, Sum2}]] -> 
+			if
+				Sum < State#state.threshold ->
+					State;
+				Sum == Sum2 ->
+					State#state{state_name=suspicious};
+				Sum >= State#state.threshold ->
+					State#state{state_name=NewStateName}
+			end;
+		[{NewStateName, Sum}] ->
+			if
+				Sum < State#state.threshold ->
+					State;
+				Sum >= State#state.threshold ->
+					State#state{state_name=NewStateName}
+			end
 	end.
 
 %% Update the lower_viewis
