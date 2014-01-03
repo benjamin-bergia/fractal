@@ -16,6 +16,8 @@
 
 -export([init/1, handle_cast/2, terminate/2]).
 
+-export([write/1]). % For the spawned processes
+
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
@@ -53,4 +55,9 @@ stop() ->
 	application:stop(mnesia).
 
 set_state(State) ->
-	writer:start(State).
+	spawn(?MODULE, write, [State]).
+
+write(Record) ->
+	mnesia:transaction(fun() -> mnesia:write(Record) end).
+
+

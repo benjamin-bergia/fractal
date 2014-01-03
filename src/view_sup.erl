@@ -12,7 +12,6 @@
 
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
--define(VIEW(S), {S#state.view_name, {view, start_link, [S]}, permanent, 5000, worker, [view]}).
 
 %% ===================================================================
 %% API functions
@@ -26,12 +25,6 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	ViewList = [?VIEW(#state{view_name=view000, lower_views=[?LOWERS(view010), ?LOWERS(view020)]}),
-		    ?VIEW(#state{view_name=view010, upper_views=[view000], lower_views=[?LOWERS(view011), ?LOWERS(view012)]}),
-		    ?VIEW(#state{view_name=view020, upper_views=[view000], lower_views=[?LOWERS(view021), ?LOWERS(view022)]}),
-		    ?VIEW(#state{view_name=view011, upper_views=[view010], lower_views=[?LOWERS(view_sup)]}),
-		    ?VIEW(#state{view_name=view012, upper_views=[view010], lower_views=[?LOWERS(view_sup)]}),
-		    ?VIEW(#state{view_name=view021, upper_views=[view020], lower_views=[?LOWERS(view_sup)]}),
-		    ?VIEW(#state{view_name=view022, upper_views=[view020], lower_views=[?LOWERS(view_sup)]})],
+	ViewList = config_parser:get_config("test.conf"),
 	{ok, {{one_for_one, 5, 10}, ViewList}}.
 

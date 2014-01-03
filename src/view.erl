@@ -4,7 +4,7 @@
 %% Local Name tuple for gproc
 -define(GP_NL(N), {n,l,N}). 
 %% Main loop Timeout
--define(TIMEOUT, 10000).
+-define(TIMEOUT, 5000).
 
 %% Import the state record
 -include("state.hrl").

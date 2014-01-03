@@ -2,14 +2,16 @@
 -export([get_config/1, parse/1, parse/3]).
 -include("state.hrl").
 -define(LOWER(N), {N, dead, 1}).
--define(STATE(N, U, L), #state{state_name=N, upper_views=U, lower_views=L}).
+-define(STATE(N, U, L), #state{view_name=N, upper_views=U, lower_views=L}).
+-define(TIMEOUT, 3000).
 
 get_config(File) ->
-	file:consult(File).
+	{ok, Conf} = file:consult(File),
+	to_view(parse(Conf)).
 
 parse(Data) ->
 	parse(Data, [], self()),
-	lists:reverse(loop([])).
+	loop([]).
 parse([{Name, []}], Upper, Pid) ->
 	Pid ! {self(), ?STATE(Name, Upper, [])};
 parse([{Name, Lowers}], Upper, Pid) ->
@@ -36,7 +38,12 @@ loop(ViewList) ->
 		_Msg ->
 			loop(ViewList)
 	after
-		10000 ->
+		?TIMEOUT ->
 			ViewList
 	end.
 
+to_view(StateList) ->
+	Fun = fun(S, Acc) ->
+			[?VIEW(S)|Acc]
+		end,
+	lists:foldl(Fun, [], StateList).
