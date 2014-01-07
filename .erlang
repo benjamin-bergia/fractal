@@ -1,3 +1,8 @@
 code:add_patha("./ebin").
 code:add_patha("./deps/gproc/ebin").
-
+code:add_patha("./deps/webmachine/ebin").
+code:add_patha("./deps/webmachine/deps/mochiweb/ebin").
+%observer:start().
+%tv:start().
+%application:start(gproc).
+%application:start(fractal).
