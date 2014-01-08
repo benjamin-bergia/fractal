@@ -2,6 +2,8 @@
 -behaviour(gen_fsm).
 -define(SERVER, ?MODULE).
 
+-record(state, {dead_engine, dead_threshold, alive_engine, alive_threshold, suspicious_engine, suspicious_threshold}).
+
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
@@ -12,46 +14,56 @@
 %% gen_fsm Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, state_name/2, state_name/3, handle_event/3,
-         handle_sync_event/4, handle_info/3, terminate/3,
-         code_change/4]).
+-export([init/1, dead/3, alive/3, suspicious/3, handle_sync_event/4, terminate/3]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
 start_link() ->
-    gen_fsm:start_link({local, ?SERVER}, ?MODULE, [], []).
+	gen_fsm:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 
 init(_Args) ->
-    {ok, initial_state_name, initial_state}.
+	{ok, initial_state_name, initial_state}.
 
-state_name(_Event, State) ->
-    {next_state, state_name, State}.
+dead({dead_acc, DeadSum, AliveSum, SuspiciousSum}, _From, S) ->
+	Engine = S#state.dead_engine,
+	Threshold = S#state.dead_threshold,
+	StateName = start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
+	{reply, ok, StateName, S};
+dead(_Event, _From, S) ->
+	{reply, ok, dead, S}.
 
-state_name(_Event, _From, State) ->
-    {reply, ok, state_name, State}.
+alive({alive_acc, DeadSum, AliveSum, SuspiciousSum}, _From, S) ->
+	Engine = S#state.alive_engine,
+	Threshold = S#state.alive_threshold,
+	StateName = start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
+	{reply, ok, StateName, S};
+alive(_Event, _From, S) ->
+	{reply, ok, alive, S}.
 
-handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State}.
+suspicious({suspicious_acc, DeadSum, AliveSum, SuspiciousSum}, _From, S) ->
+	Engine = S#state.suspicious_engine,
+	Threshold = S#state.suspicious_threshold,
+	StateName = start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
+	{reply, ok, StateName, S};
+suspicious(_Event, _From, S) ->
+	{reply, ok, suspicious, S}.
 
 handle_sync_event(_Event, _From, StateName, State) ->
-    {reply, ok, StateName, State}.
-
-handle_info(_Info, StateName, State) ->
-    {next_state, StateName, State}.
+	{reply, ok, StateName, State}.
 
 terminate(_Reason, _StateName, _State) ->
-    ok.
-
-code_change(_OldVsn, StateName, State, _Extra) ->
-    {ok, StateName, State}.
+	ok.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
+start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum) ->
+	{ok, StateName} = spawn(Engine, start, [Threshold, DeadSum, AliveSum, SuspiciousSum]),
+	StateName.
