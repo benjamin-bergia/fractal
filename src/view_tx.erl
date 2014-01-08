@@ -2,49 +2,55 @@
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
+-record(state, {name}).
+
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0]).
+-export([start_link/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+-export([init/1, handle_call/3, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Name) ->
+	gen_server:start_link({local, ?SERVER}, ?MODULE, Name, []).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Args) ->
-    {ok, Args}.
+init(Name) ->
+	S = #state{name=Name},
+	{ok, S}.
 
-handle_call(_Request, _From, State) ->
-    {reply, ok, State}.
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_call({status_change, Status}, _From, S) ->
+	propagate(Status, S#state.name),
+	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
-    ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+	ok.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
+propagate(Status, Name) ->
+	Pids = resolve(Name),
+	Msg = {status_change, Name, Status},
+	Txer = fun(Pid) ->
+			txer:start(Pid, Msg)
+		end,
+	list:all(Txer, Pids).
+
+resolve(Name) ->
+	Result = gproc:lookup_pids({p, l, Name}),
+	{Pids, _Values} = lists:unzip(Result),
+	Pids.
