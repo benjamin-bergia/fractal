@@ -52,12 +52,12 @@ update_lists(ViewName, Status, Deads, Alives, Suspicious) ->
 	update(ViewName, Weight, Status, D, A, S).
 	
 remove(ViewName, List) ->
-	{true, NewList} = lists:keydelete(ViewName, 1, List),
+	NewList = lists:keydelete(ViewName, 1, List),
 	case NewList /= List of
 		true ->
-			{true, NewList};
+			NewList;
 		false ->
-			{false, NewList}
+			List
 	end.
 
 update(ViewName, Weight, dead, Deads, Alives, Suspicious) ->
