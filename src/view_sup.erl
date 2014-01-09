@@ -25,6 +25,7 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	ViewList = config_parser:get_config("test.conf"),
+	%ViewList = config_parser:get_config("test.conf"),
+	ViewList = [{view, {view, start_link, [{test, direct, 1, []}]}, permanent, 5000, worker, [view]}],
 	{ok, {{one_for_one, 5, 10}, ViewList}}.
 
