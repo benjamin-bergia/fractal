@@ -33,7 +33,7 @@ init(_Args) ->
 dead({dead_acc, DeadSum, AliveSum, SuspiciousSum}, _From, S) ->
 	Engine = S#state.dead_engine,
 	Threshold = S#state.dead_threshold,
-	StateName = start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
+	StateName = start_engine(dead, Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
 	{reply, ok, StateName, S};
 dead(_Event, _From, S) ->
 	{reply, ok, dead, S}.
@@ -41,7 +41,7 @@ dead(_Event, _From, S) ->
 alive({alive_acc, DeadSum, AliveSum, SuspiciousSum}, _From, S) ->
 	Engine = S#state.alive_engine,
 	Threshold = S#state.alive_threshold,
-	StateName = start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
+	StateName = start_engine(alive, Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
 	{reply, ok, StateName, S};
 alive(_Event, _From, S) ->
 	{reply, ok, alive, S}.
@@ -49,7 +49,7 @@ alive(_Event, _From, S) ->
 suspicious({suspicious_acc, DeadSum, AliveSum, SuspiciousSum}, _From, S) ->
 	Engine = S#state.suspicious_engine,
 	Threshold = S#state.suspicious_threshold,
-	StateName = start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
+	StateName = start_engine(alive, Engine, Threshold, DeadSum, AliveSum, SuspiciousSum),
 	{reply, ok, StateName, S};
 suspicious(_Event, _From, S) ->
 	{reply, ok, suspicious, S}.
@@ -64,6 +64,11 @@ terminate(_Reason, _StateName, _State) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-start_engine(Engine, Threshold, DeadSum, AliveSum, SuspiciousSum) ->
-	{ok, StateName} = spawn(Engine, start, [Threshold, DeadSum, AliveSum, SuspiciousSum]),
+start_engine(Status, Engine, Threshold, DeadSum, AliveSum, SuspiciousSum) ->
+	{ok, StateName} = spawn(Engine, start, [Status, Threshold, DeadSum, AliveSum, SuspiciousSum]),
 	StateName.
+
+%% Include the unit tests 
+-ifdef(TEST).
+-include("test/view_core_tests.hrl").
+-endif.
