@@ -8,9 +8,6 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
-
 %% ===================================================================
 %% API functions
 %% ===================================================================
@@ -23,7 +20,17 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	%ViewList = config_parser:get_config("test.conf"),
-	ViewList = [{view, {view, start_link, [{test, direct, 1, []}]}, permanent, 5000, worker, [view]}],
-	{ok, {{one_for_one, 5, 10}, ViewList}}.
+	ViewTX = 	{view_tx, 	{view_tx,	start_link, []},	permanent, 5000, worker, [view_tx]},
+	ViewCore = 	{view_core, 	{view_core,	start_link, []},	permanent, 5000, worker, [view_core]},
+	DeadAcc = 	{dead_acc, 	{view_acc,	start_link, []},	permanent, 5000, worker, [view_acc]},
+	DeadRX = 	{dead_rx, 	{view_rx,	start_link, []},	permanent, 5000, worker, [view_rx]},
+	AliveAcc = 	{alive_acc, 	{view_acc, 	start_link, []},	permanent, 5000, worker, [view_acc]},
+	AliveRX = 	{alive_rx, 	{view_rx,	start_link, []},	permanent, 5000, worker, [view_rx]},
+	SuspiciousAcc = {suspicious_acc,{view_acc,	start_link, []},	permanent, 5000, worker, [view_acc]},
+	SuspiciousRX = 	{suspicious_rx, {view_rx,	start_link, []}, 	permanent, 5000, worker, [view_rx]},
+	View = [ViewTX,		ViewCore,
+	       	DeadAcc,	DeadRX,
+	       	AliveAcc,	AliveRX,
+	       	SuspiciousAcc,	SuspiciousRX],
+	{ok, {{one_for_one, 5, 10}, View}}.
 
