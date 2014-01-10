@@ -2,13 +2,13 @@
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
--record(state, {name, core, deads=[], alives=[], suspicious=[]}).
+-record(state, {name, tid, deads=[], alives=[], suspicious=[]}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/2]).
+-export([start_link/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -20,21 +20,23 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(Name, ViewCore) ->
-	S = #state{name=Name, core=ViewCore},
-	gen_server:start_link({local, ?SERVER}, ?MODULE, S, []).
+start_link(Args) ->
+	gen_server:start_link({local, ?SERVER}, ?MODULE, [Args], []).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(S) ->
+init({Name, Tid}) ->
+	S = #state{name=Name, tid=Tid},
+	view_sup:set_pid(Tid, Name, self()),
 	{ok, S}.
 
 handle_call({status_change, ViewName, Status}, _From, S) ->
 	{Deads, Alives, Suspicious} = update_lists(ViewName, Status, S#state.deads, S#state.alives, S#state.suspicious),
 	{DeadSum, AliveSum, SuspiciousSum} = sum(Deads, Alives, Suspicious),
-	forward(S#state.name, ViewName, DeadSum, AliveSum, SuspiciousSum),
+	Core = view_sup:get_pid(S#state.tid, view_core),
+	forward(S#state.name, Core, DeadSum, AliveSum, SuspiciousSum),
 	{reply, ok, S#state{deads=Deads, alives=Alives, suspicious=Suspicious}}.
 
 terminate(_Reason, _State) ->
@@ -83,9 +85,9 @@ sum2(TupleList) ->
 	{_First, Second} = lists:unzip(TupleList),
 	lists:sum(Second).
 
-forward(Name, View, DeadSum, AliveSum, SuspiciousSum) ->
+forward(Name, Core, DeadSum, AliveSum, SuspiciousSum) ->
 	Msg = {Name, {dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}},
-	gen_fsm:send(View, Msg).
+	gen_fsm:send(Core, Msg).
 
 get_weight(ViewName, Deads, Alives, Suspicious) ->
 	List = lists:append([Deads, Alives, Suspicious]),

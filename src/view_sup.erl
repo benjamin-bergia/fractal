@@ -8,6 +8,9 @@
 %% Supervisor callbacks
 -export([init/1]).
 
+-define(CORE_ARGS(Tid, DE, DT, AE, AT, SE, ST), {Tid, DE, DT, AE, AT, SE, ST}).
+-define(ACC_ARGS(Name, Tid), {Name, Tid}).
+
 %% ===================================================================
 %% API functions
 %% ===================================================================
