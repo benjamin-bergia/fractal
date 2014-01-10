@@ -3,39 +3,37 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, set_pid/3, get_pid/2]).
+-export([start_link/1, set_pid/3, get_pid/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
--define(CORE_ARGS(Tid, DE, DT, AE, AT, SE, ST), {Tid, DE, DT, AE, AT, SE, ST}).
--define(ACC_ARGS(Name, Tid), {Name, Tid}).
+-define(TX(Tid, ViewName), {view_tx, {view_tx, start_link, [{Tid, ViewName}]}, permanent, 5000, worker, [view_tx]}).
+-define(CORE(Tid, DE, DT, AE, AT, SE, ST), {view_core, {view_core, start_link, [{Tid, {DE, DT}, {AE, AT}, {SE, ST}}]}, permanent, 5000, worker, [view_core]}).
+-define(ACC(Name, Tid), {Name, {view_acc, start_link, [{Name, Tid}]}, permanent, 5000, worker, [view_acc]}).
+-define(RX(Name, Tid, Acc, Subs), {Name, {view_rx, start_link, [{Name, Tid, Acc, Subs}]}, permanent, 5000, worker, [view_rx]}).
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+start_link(ViewName) ->
+    supervisor:start_link(?MODULE, [ViewName]).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
-init([]) ->
+init(ViewName) ->
 	Tid = create_table(),
-	ViewTX = 	{view_tx, 	{view_tx,	start_link, []},	permanent, 5000, worker, [view_tx]},
-	ViewCore = 	{view_core, 	{view_core,	start_link, []},	permanent, 5000, worker, [view_core]},
-	DeadAcc = 	{dead_acc, 	{view_acc,	start_link, []},	permanent, 5000, worker, [view_acc]},
-	DeadRX = 	{dead_rx, 	{view_rx,	start_link, []},	permanent, 5000, worker, [view_rx]},
-	AliveAcc = 	{alive_acc, 	{view_acc, 	start_link, []},	permanent, 5000, worker, [view_acc]},
-	AliveRX = 	{alive_rx, 	{view_rx,	start_link, []},	permanent, 5000, worker, [view_rx]},
-	SuspiciousAcc = {suspicious_acc,{view_acc,	start_link, []},	permanent, 5000, worker, [view_acc]},
-	SuspiciousRX = 	{suspicious_rx, {view_rx,	start_link, []}, 	permanent, 5000, worker, [view_rx]},
-	View = [ViewTX,		ViewCore,
-	       	DeadAcc,	DeadRX,
-	       	AliveAcc,	AliveRX,
-	       	SuspiciousAcc,	SuspiciousRX],
+	View = [?TX(Tid, ViewName),
+		?CORE(Tid, weighted_engine, 1, weighted_engine, 1, weighted_engine, 1),
+		?ACC(dead_acc, Tid),
+		?RX(dead_rx, Tid, dead_acc, []),
+		?ACC(alive_acc, Tid),
+		?RX(alive_rx, Tid, alive_acc, []),
+		?ACC(suspicious_acc, Tid),
+		?RX(suspicious_rx, Tid, suspicious_acc, [])],
 	{ok, {{one_for_one, 5, 10}, View}}.
 
 create_table() ->

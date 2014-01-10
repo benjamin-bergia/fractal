@@ -21,13 +21,13 @@
 %% ------------------------------------------------------------------
 
 start_link(Args) ->
-	gen_fsm:start_link({local, ?SERVER}, ?MODULE, [Args], []).
+	gen_fsm:start_link(?MODULE, Args, []).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 
-init({Tid, DE, DT, AE, AT, SE, ST}) ->
+init({Tid, {DE, DT}, {AE, AT}, {SE, ST}}) ->
 	S = #state{name=?MODULE,
 		   tid=Tid,
 		   dead_engine=DE,

@@ -2,7 +2,7 @@
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
--record(state, {name}).
+-record(state, {name, tid, view_name}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -20,19 +20,20 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(Name) ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, Name, []).
+start_link(Args) ->
+	gen_server:start_link(?MODULE, Args, []).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Name) ->
-	S = #state{name=Name},
+init({Tid, ViewName}) ->
+	S = #state{name=?MODULE, tid=Tid, view_name=ViewName},
+	view_sup:set_pid(Tid, ?MODULE, self()),
 	{ok, S}.
 
 handle_call({status_change, Status}, _From, S) ->
-	propagate(Status, S#state.name),
+	propagate(S#state.view_name, Status),
 	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
@@ -42,15 +43,15 @@ terminate(_Reason, _State) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-propagate(Status, Name) ->
-	Pids = resolve(Name),
-	Msg = {status_change, Name, Status},
+propagate(ViewName, Status) ->
+	Pids = resolve(ViewName),
+	Msg = {status_change, ViewName, Status},
 	Txer = fun(Pid) ->
 			txer:start(Pid, Msg)
 		end,
 	list:all(Txer, Pids).
 
-resolve(Name) ->
-	Result = gproc:lookup_pids({p, l, Name}),
+resolve(ViewName) ->
+	Result = gproc:lookup_pids({p, l, ViewName}),
 	{Pids, _Values} = lists:unzip(Result),
 	Pids.

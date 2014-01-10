@@ -2,7 +2,7 @@
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
--record(state, {accumulator, subscriptions}).
+-record(state, {name, tid, accumulator, subscriptions}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -20,20 +20,22 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(Subscriptions) ->
-	S = #state{subscriptions=Subscriptions},
-	gen_server:start_link({local, ?SERVER}, ?MODULE, S, []).
+start_link(Args) ->
+	gen_server:start_link(?MODULE, Args, []).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(S) ->
-	subscribe(S#state.subscriptions),	
+init({Name, Tid, Accumulator, Subscriptions}) ->
+	S = #state{name=Name, tid=Tid, accumulator=Accumulator, subscriptions=Subscriptions},
+	view_sup:set_pid(Tid, Name, self()),
+	subscribe(Subscriptions),	
 	{ok, S}.
 
 handle_call({status_change, _View, _Status}=Msg, _From, S) ->
-	forward(S#state.accumulator, Msg),
+	Accumulator = view_sup:get_pid(S#state.tid, S#state.accumulator),
+	forward(Accumulator, Msg),
 	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
