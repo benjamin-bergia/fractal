@@ -1,7 +1,6 @@
--module(state_store).
+-module(view_store).
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
--define(STORAGE, storage).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -13,7 +12,8 @@
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, handle_cast/2, terminate/2]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -27,18 +27,24 @@ start_link() ->
 %% ------------------------------------------------------------------
 
 init(Args) ->
-    	{ok, Args}.
+    {ok, Args}.
 
-handle_cast({set_state, ViewState}, State) ->
-	set_state(ViewState),
-    	{noreply, State}.
+handle_call(_Request, _From, State) ->
+    {reply, ok, State}.
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
 
 terminate(_Reason, _State) ->
-    	ok.
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-set_state(State) ->
-	ok = gen_server:cast(?STORAGE, {set, state, State}).

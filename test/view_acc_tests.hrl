@@ -4,7 +4,7 @@ update_lists_test() ->
 	D = [{a, 3}],
 	A = [{ba, 3}, {"test", 15}, {5, "test again"}, {"one", "more"}],
 	S = [],
-	R = [{"test", 15}],
+	R = {[{a, 3}], [{ba, 3}, {5, "test again"}, {"one", "more"}], [{"test", 15}]},
 	?assertEqual(R, update_lists("test",suspicious, D, A, S)).
 
 get_weight_test() ->
