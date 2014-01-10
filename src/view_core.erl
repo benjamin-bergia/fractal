@@ -36,6 +36,7 @@ init({Tid, {DE, DT}, {AE, AT}, {SE, ST}}) ->
 		   alive_threshold=AT,
 		   suspicious_engine=SE,
 		   suspicious_threshold=ST},
+	view_sup:set_pid(Tid, ?MODULE, self()),
 	{ok, dead, S}.
 
 dead({dead_acc, DeadSum, AliveSum, SuspiciousSum}, _From, S) ->
