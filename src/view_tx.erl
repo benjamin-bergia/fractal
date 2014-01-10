@@ -1,49 +1,57 @@
--module(dispatcher).
+-module(view_tx).
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
+
+-record(state, {name, tid, view_name}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0]).
+-export([start_link/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, handle_cast/2, terminate/2, notify/2]).
+-export([init/1, handle_call/3, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Args) ->
+	gen_server:start_link(?MODULE, Args, []).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Args) ->
-    	{ok, Args}.
+init({Tid, ViewName}) ->
+	S = #state{name=?MODULE, tid=Tid, view_name=ViewName},
+	view_sup:set_pid(Tid, ?MODULE, self()),
+	{ok, S}.
 
-handle_cast({set, state_name, ViewName, StateName}, State) ->
-	dispatch_update(ViewName, StateName),
-    	{noreply, State}.
+handle_call({status_change, Status}, _From, S) ->
+	propagate(S#state.view_name, Status),
+	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
-    	ok.
+	ok.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-dispatch_update(ViewName, StateName) ->
-	Fun = fun() ->
-			view:notify(ViewName, ?SERVER, StateName)
+propagate(ViewName, Status) ->
+	Pids = resolve(ViewName),
+	Msg = {status_change, ViewName, Status},
+	Txer = fun(Pid) ->
+			txer:start(Pid, Msg)
 		end,
-	spawn(Fun).
+	list:all(Txer, Pids).
 
-notify(ViewName, StateName) ->
-	gen_server:cast(?SERVER, {set, state_name, ViewName, StateName}).
+resolve(ViewName) ->
+	Result = gproc:lookup_pids({p, l, ViewName}),
+	{Pids, _Values} = lists:unzip(Result),
+	Pids.
