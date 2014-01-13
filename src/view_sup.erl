@@ -10,7 +10,7 @@
 
 -define(TX(Tid, ViewName), {view_tx, {view_tx, start_link, [{Tid, ViewName}]}, permanent, 5000, worker, [view_tx]}).
 -define(CORE(Tid, DE, DT, AE, AT, SE, ST), {view_core, {view_core, start_link, [{Tid, {DE, DT}, {AE, AT}, {SE, ST}}]}, permanent, 5000, worker, [view_core]}).
--define(ACC(Name, Tid), {Name, {view_acc, start_link, [{Name, Tid}]}, permanent, 5000, worker, [view_acc]}).
+-define(ACC(Name, Tid, D, A, S), {Name, {view_acc, start_link, [{Name, Tid}]}, permanent, 5000, worker, [view_acc]}).
 -define(RX(Name, Tid, Acc, Subs), {Name, {view_rx, start_link, [{Name, Tid, Acc, Subs}]}, permanent, 5000, worker, [view_rx]}).
 
 %% ===================================================================
@@ -28,12 +28,12 @@ init(ViewName) ->
 	Tid = create_table(),
 	View = [?TX(Tid, ViewName),
 		?CORE(Tid, weighted_engine, 1, weighted_engine, 1, weighted_engine, 1),
-		?ACC(dead_acc, Tid),
-		?RX(dead_rx, Tid, dead_acc, []),
-		?ACC(alive_acc, Tid),
-		?RX(alive_rx, Tid, alive_acc, []),
-		?ACC(suspicious_acc, Tid),
-		?RX(suspicious_rx, Tid, suspicious_acc, [])],
+		?ACC(dead_acc, Tid, [{"test", 1}], [{"test", 1}], [{"test", 1}]),
+		?RX(dead_rx, Tid, dead_acc, ["test"]),
+		?ACC(alive_acc, Tid, [{"test", 1}], [{"test", 1}], [{"test", 1}]),
+		?RX(alive_rx, Tid, alive_acc, ["test"]),
+		?ACC(suspicious_acc, Tid, [{"test", 1}], [{"test", 1}], [{"test", 1}]),
+		?RX(suspicious_rx, Tid, suspicious_acc, ["test"])],
 	{ok, {{one_for_one, 5, 10}, View}}.
 
 create_table() ->

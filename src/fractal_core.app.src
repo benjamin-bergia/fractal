@@ -1,0 +1,13 @@
+{application, fractal_core,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+		  gproc
+                 ]},
+  {mod, { fractal_core_app, []}},
+  {env, []}
+ ]}.

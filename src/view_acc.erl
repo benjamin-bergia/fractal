@@ -27,8 +27,8 @@ start_link(Args) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init({Name, Tid}) ->
-	S = #state{name=Name, tid=Tid},
+init({Name, Tid, Deads, Alives, Suspicious}) ->
+	S = #state{name=Name, tid=Tid, deads=Deads, alives=Alives, suspicious=Suspicious},
 	view_sup:set_pid(Tid, Name, self()),
 	{ok, S}.
 

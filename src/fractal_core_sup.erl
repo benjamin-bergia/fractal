@@ -1,5 +1,5 @@
 
--module(fractal_sup).
+-module(fractal_core_sup).
 
 -behaviour(supervisor).
 
