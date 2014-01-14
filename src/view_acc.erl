@@ -87,7 +87,7 @@ sum2(TupleList) ->
 
 forward(Name, Core, DeadSum, AliveSum, SuspiciousSum) ->
 	Msg = {Name, {dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}},
-	gen_fsm:send(Core, Msg).
+	gen_fsm:sync_send_event(Core, Msg).
 
 get_weight(ViewName, Deads, Alives, Suspicious) ->
 	List = lists:append([Deads, Alives, Suspicious]),

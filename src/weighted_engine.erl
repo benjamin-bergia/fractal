@@ -2,16 +2,14 @@
 
 -export([start/5]).
 
-start(_Status, Threshold, DeadSum, AliveSum, SuspiciousSum) when DeadSum >= Threshold ; AliveSum >= Threshold ; SuspiciousSum >= Threshold ->
+start(_Status, Threshold, DeadSum, AliveSum, SuspiciousSum) ->
 	[{FirstStatus, FirstSum}|[{_SecondStatus, SecondSum}|_T]] = inverted_insertion_sort([{dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}]),
 	case FirstSum == SecondSum of
 		true ->
 			suspicious;
 		false ->
 			FirstStatus
-	end;
-start(Status, _Threshold, _DeadSum, _AliveSum, _SuspiciousSum) ->
-	Status.
+	end.
 
 inverted_insertion_sort(List) ->
 	lists:foldl(fun inverted_insertion/2, [], List).
