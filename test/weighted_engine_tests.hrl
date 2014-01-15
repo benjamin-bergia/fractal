@@ -11,3 +11,10 @@ inverted_insertion_sort_test() ->
 	List = [{0, 1}, {a, 5}, {"test", 3}],
 	Sorted = [{a, 5}, {"test", 3}, {0, 1}],
 	?assertEqual(Sorted, inverted_insertion_sort(List)).
+
+compare_test() ->
+	?assertEqual(suspicious, compare(alive, 3, {dead, 5}, {alive, 5})),
+	?assertEqual(dead, compare(alive, 3, {dead, 5}, {alive, 4})),
+	?assertEqual(alive, compare(alive, 5, {dead, 3}, {alive, 4})),
+	?assertEqual(alive, compare(alive, 5, {dead, 3}, {alive, 3})).
+
