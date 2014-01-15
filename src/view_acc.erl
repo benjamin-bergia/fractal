@@ -84,6 +84,8 @@ sum(DList, AList, SList) ->
 	SSum = sum2(SList),
 	{DSum, ASum, SSum}.
 
+sum2([]) ->
+	0;
 sum2(TupleList) ->
 	{_First, Second} = lists:unzip(TupleList),
 	lists:sum(Second).
