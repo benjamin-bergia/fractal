@@ -44,21 +44,21 @@ init({Tid, {DE, DT}, {AE, AT}, {SE, ST}}) ->
 	{ok, dead, S}.
 
 dead({dead_acc, DList, AList, SList}, _From, S) ->
-	Status = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, DList, AList, SList),
+	{ok, Status} = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, DList, AList, SList),
 	view_tx:forward(S#state.tid, ?MODULE, Status),
 	{reply, ok, Status, S};
 dead(_Event, _From, S) ->
 	{reply, ok, dead, S}.
 
 alive({alive_acc, DList, AList, SList}, _From, S) ->
-	Status = start_engine(alive, S#state.alive_ngn, S#state.alive_thd, DList, AList, SList),
+	{ok, Status} = start_engine(alive, S#state.alive_ngn, S#state.alive_thd, DList, AList, SList),
 	view_tx:forward(S#state.tid, view_core, Status),
 	{reply, ok, Status, S};
 alive(_Event, _From, S) ->
 	{reply, ok, alive, S}.
 
 suspicious({suspicious_acc, DList, AList, SList}, _From, S) ->
-	Status = start_engine(alive, S#state.suspicious_ngn, S#state.suspicious_thd, DList, AList, SList),
+	{ok, Status} = start_engine(alive, S#state.suspicious_ngn, S#state.suspicious_thd, DList, AList, SList),
 	view_tx:forward(S#state.tid, view_core, Status),
 	{reply, ok, Status, S};
 suspicious(_Event, _From, S) ->

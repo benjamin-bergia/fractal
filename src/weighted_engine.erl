@@ -1,10 +1,41 @@
 -module(weighted_engine).
+-behaviour(gen_server).
+-define(SERVER, ?MODULE).
 
--export([start/3]).
+%% ------------------------------------------------------------------
+%% API Function Exports
+%% ------------------------------------------------------------------
 
-start(Status, Threshold, StatusList) ->
+-export([start/1]).
+
+%% ------------------------------------------------------------------
+%% gen_server Function Exports
+%% ------------------------------------------------------------------
+
+-export([init/1, terminate/2]).
+
+%% ------------------------------------------------------------------
+%% API Function Definitions
+%% ------------------------------------------------------------------
+
+start(Args) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, []).
+
+%% ------------------------------------------------------------------
+%% gen_server Function Definitions
+%% ------------------------------------------------------------------
+
+init({Status, Threshold, StatusList}) ->
 	[First|[Second|_T]] = inverted_insertion_sort(StatusList),
-	compare(Status, Threshold, First, Second).
+	NewStatus = compare(Status, Threshold, First, Second),
+	{stop, NewStatus}.
+
+terminate(_Reason, Status) ->
+	{ok, Status}.
+
+%% ------------------------------------------------------------------
+%% Internal Function Definitions
+%% ------------------------------------------------------------------
 
 inverted_insertion_sort(List) ->
 	lists:foldl(fun inverted_insertion/2, [], List).
