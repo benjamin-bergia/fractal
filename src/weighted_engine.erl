@@ -12,7 +12,7 @@
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, terminate/2]).
+-export([init/3, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -25,7 +25,7 @@ start(Args) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init({Status, Threshold, StatusList}) ->
+init(Status, Threshold, StatusList) ->
 	[First|[Second|_T]] = inverted_insertion_sort(StatusList),
 	NewStatus = compare(Status, Threshold, First, Second),
 	{stop, NewStatus}.
