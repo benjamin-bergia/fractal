@@ -1,15 +1,10 @@
 -module(weighted_engine).
 
--export([start/5]).
+-export([start/3]).
 
-start(_Status, Threshold, DeadSum, AliveSum, SuspiciousSum) ->
-	[{FirstStatus, FirstSum}|[{_SecondStatus, SecondSum}|_T]] = inverted_insertion_sort([{dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}]),
-	case FirstSum == SecondSum of
-		true ->
-			suspicious;
-		false ->
-			FirstStatus
-	end.
+start(Status, Threshold, StatusList) ->
+	[First|[Second|_T]] = inverted_insertion_sort(StatusList),
+	compare(Status, Threshold, First, Second).
 
 inverted_insertion_sort(List) ->
 	lists:foldl(fun inverted_insertion/2, [], List).
@@ -19,6 +14,13 @@ inverted_insertion(Acc={_, AccSecond}, List=[{_, Second}|_]) when AccSecond >= S
 	[Acc|List];
 inverted_insertion(Acc,[H|T]) ->
 	[H|inverted_insertion(Acc, T)].
+
+compare(_Status, Threshold, {_StatusA, Sum}, {_StatusB, Sum}) when Sum >= Threshold ->
+	suspicious;
+compare(_Status, Threshold, {StatusA, Sum}, _) when Sum >= Threshold ->
+	StatusA;
+compare(Status, _, _, _) ->
+	Status.
 
 -ifdef(TEST).
 -include("test/weighted_engine_tests.hrl").
