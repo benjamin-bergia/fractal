@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1]).
+-export([start_link/1, forward/2]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -22,6 +22,10 @@
 
 start_link(Args) ->
 	gen_server:start_link(?MODULE, Args, []).
+
+forward(Tid, Status) ->
+	TX = view_sup:get_pid(Tid, ?MODULE),
+	gen_server:call(TX, {status_change, Status}).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -45,9 +49,8 @@ terminate(_Reason, _State) ->
 
 propagate(ViewName, Status) ->
 	Pids = resolve(ViewName),
-	Msg = {status_change, ViewName, Status},
 	Txer = fun(Pid) ->
-			txer:start(Pid, Msg)
+			view_rx:forward(Pid, ViewName, Status)
 		end,
 	list:all(Txer, Pids).
 

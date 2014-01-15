@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1]).
+-export([start_link/1, forward/3]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -23,19 +23,21 @@
 start_link(Args) ->
 	gen_server:start_link(?MODULE, Args, []).
 
+forward(Pid, From, Status) ->
+	gen_server:call(Pid, {status_change, From, Status}).
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
 init({Name, Tid, Accumulator, Subscriptions}) ->
 	S = #state{name=Name, tid=Tid, accumulator=Accumulator, subscriptions=Subscriptions},
-	view_sup:set_pid(Tid, Name, self()),
+	view_sup:set_pid(Tid, ?MODULE, Name, self()),
 	subscribe(Subscriptions),	
 	{ok, S}.
 
-handle_call({status_change, _View, _Status}=Msg, _From, S) ->
-	Accumulator = view_sup:get_pid(S#state.tid, S#state.accumulator),
-	forward(Accumulator, Msg),
+handle_call({status_change, View, Status}, _From, S) ->
+	view_acc:forward(S#state.name, S#state.tid, View, Status),
 	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
@@ -51,6 +53,3 @@ subscribe(Names) ->
 		end,
 	Subscriptions = lists:foldl(F, [], Names),
 	gproc:mreg(p, l, Subscriptions).
-
-forward(To, Msg) ->
-	gen_server:call(To, Msg).

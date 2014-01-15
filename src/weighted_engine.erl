@@ -1,17 +1,41 @@
 -module(weighted_engine).
+-behaviour(gen_server).
+-define(SERVER, ?MODULE).
 
--export([start/5]).
+%% ------------------------------------------------------------------
+%% API Function Exports
+%% ------------------------------------------------------------------
 
-start(_Status, Threshold, DeadSum, AliveSum, SuspiciousSum) when DeadSum >= Threshold ; AliveSum >= Threshold ; SuspiciousSum >= Threshold ->
-	[{FirstStatus, FirstSum}|[{_SecondStatus, SecondSum}|_T]] = inverted_insertion_sort([{dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}]),
-	case FirstSum == SecondSum of
-		true ->
-			suspicious;
-		false ->
-			FirstStatus
-	end;
-start(Status, _Threshold, _DeadSum, _AliveSum, _SuspiciousSum) ->
-	Status.
+-export([start/1]).
+
+%% ------------------------------------------------------------------
+%% gen_server Function Exports
+%% ------------------------------------------------------------------
+
+-export([init/3, terminate/2]).
+
+%% ------------------------------------------------------------------
+%% API Function Definitions
+%% ------------------------------------------------------------------
+
+start(Args) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, []).
+
+%% ------------------------------------------------------------------
+%% gen_server Function Definitions
+%% ------------------------------------------------------------------
+
+init(Status, Threshold, StatusList) ->
+	[First|[Second|_T]] = inverted_insertion_sort(StatusList),
+	NewStatus = compare(Status, Threshold, First, Second),
+	{stop, NewStatus}.
+
+terminate(_Reason, Status) ->
+	{ok, Status}.
+
+%% ------------------------------------------------------------------
+%% Internal Function Definitions
+%% ------------------------------------------------------------------
 
 inverted_insertion_sort(List) ->
 	lists:foldl(fun inverted_insertion/2, [], List).
@@ -21,6 +45,13 @@ inverted_insertion(Acc={_, AccSecond}, List=[{_, Second}|_]) when AccSecond >= S
 	[Acc|List];
 inverted_insertion(Acc,[H|T]) ->
 	[H|inverted_insertion(Acc, T)].
+
+compare(_Status, Threshold, {_StatusA, Sum}, {_StatusB, Sum}) when Sum >= Threshold ->
+	suspicious;
+compare(_Status, Threshold, {StatusA, Sum}, _) when Sum >= Threshold ->
+	StatusA;
+compare(Status, _, _, _) ->
+	Status.
 
 -ifdef(TEST).
 -include("test/weighted_engine_tests.hrl").
