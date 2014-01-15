@@ -18,3 +18,27 @@ remove_test() ->
 	L2 = [{ba, 3}, {5, "test again"}, {"one", "more"}],
 	?assertEqual(L2, remove("test", L)).
 
+update_test() ->
+	ViewName = "test",
+	Weight = 3,
+	DList = [],
+	AList = [{true, 0}],
+	SList = [{false, 1}, {"hello", "world"}],
+	?assertEqual({[{ViewName, Weight}], AList, SList}, update(ViewName, Weight, dead, DList, AList, SList)),
+	?assertEqual({DList, [{ViewName, Weight}|AList], SList}, update(ViewName, Weight, alive, DList, AList, SList)),
+	?assertEqual({DList, AList, [{ViewName, Weight}|SList]}, update(ViewName, Weight, suspicious, DList, AList, SList)).
+
+append_view_test() ->
+	List = [{"test", 3}],
+	?assertEqual(List, append_view("test", 3, [])).
+
+sum_test() ->
+	TL1 = [{2, 4}, {"test", 1}],
+	TL2 = [],
+	TL3 = [{true, 3}],
+	?assertEqual({5, 0, 3}, sum(TL1, TL2, TL3)).
+
+sum2_test() ->
+	TupleList = [{a, 2}, {"test", 4}, {2, 34}],
+	?assertEqual(40, sum2(TupleList)),
+	?assertEqual(0, sum2([])).
