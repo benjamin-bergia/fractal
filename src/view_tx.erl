@@ -45,9 +45,8 @@ terminate(_Reason, _State) ->
 
 propagate(ViewName, Status) ->
 	Pids = resolve(ViewName),
-	Msg = {status_change, ViewName, Status},
 	Txer = fun(Pid) ->
-			txer:start(Pid, Msg)
+			view_rx:notify_status(Pid, ViewName, Status)
 		end,
 	list:all(Txer, Pids).
 

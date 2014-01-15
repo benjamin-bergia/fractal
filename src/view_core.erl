@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1]).
+-export([start_link/1, forward/5]).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Exports
@@ -22,6 +22,10 @@
 
 start_link(Args) ->
 	gen_fsm:start_link(?MODULE, Args, []).
+
+forward(To, From, DeadSum, AliveSum, SuspiciousSum) ->
+	Msg = {From, {dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}},
+	gen_fsm:sync_send_event(To, From, Msg).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions

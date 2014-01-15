@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1]).
+-export([start_link/1, notify_status/3]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -23,6 +23,9 @@
 start_link(Args) ->
 	gen_server:start_link(?MODULE, Args, []).
 
+notify_status(To, From, Status) ->
+	gen_server:call(To, {status_change, From, Status}).
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
@@ -36,7 +39,7 @@ handle_call({status_change, ViewName, Status}, _From, S) ->
 	{Deads, Alives, Suspicious} = update_lists(ViewName, Status, S#state.deads, S#state.alives, S#state.suspicious),
 	{DeadSum, AliveSum, SuspiciousSum} = sum(Deads, Alives, Suspicious),
 	Core = view_sup:get_pid(S#state.tid, view_core),
-	forward(S#state.name, Core, DeadSum, AliveSum, SuspiciousSum),
+	forward(Core, S#state.name, DeadSum, AliveSum, SuspiciousSum),
 	{reply, ok, S#state{deads=Deads, alives=Alives, suspicious=Suspicious}}.
 
 terminate(_Reason, _State) ->
@@ -85,9 +88,8 @@ sum2(TupleList) ->
 	{_First, Second} = lists:unzip(TupleList),
 	lists:sum(Second).
 
-forward(Name, Core, DeadSum, AliveSum, SuspiciousSum) ->
-	Msg = {Name, {dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}},
-	gen_fsm:sync_send_event(Core, Msg).
+forward(Core, Name, DeadSum, AliveSum, SuspiciousSum) ->
+	view_core:forward(Core, Name, DeadSum, AliveSum, SUspiciousSum).
 
 get_weight(ViewName, Deads, Alives, Suspicious) ->
 	List = lists:append([Deads, Alives, Suspicious]),

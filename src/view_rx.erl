@@ -36,9 +36,9 @@ init({Name, Tid, Accumulator, Subscriptions}) ->
 	subscribe(Subscriptions),	
 	{ok, S}.
 
-handle_call({status_change, _View, _Status}=Msg, _From, S) ->
+handle_call({status_change, View, Status}, _From, S) ->
 	Accumulator = view_sup:get_pid(S#state.tid, S#state.accumulator),
-	forward(Accumulator, Msg),
+	view_acc:notify_status(Accumulator, View, Status)
 	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
@@ -54,6 +54,3 @@ subscribe(Names) ->
 		end,
 	Subscriptions = lists:foldl(F, [], Names),
 	gproc:mreg(p, l, Subscriptions).
-
-forward(To, Msg) ->
-	gen_server:call(To, Msg).
