@@ -2,13 +2,13 @@
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
--record(state, {name, tid, deads=[], alives=[], suspicious=[]}).
+-record(state, {name, tid, d_list=[], a_list=[], s_list=[]}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1, notify_status/3]).
+-export([start_link/1, forward/4]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -23,24 +23,24 @@
 start_link(Args) ->
 	gen_server:start_link(?MODULE, Args, []).
 
-notify_status(To, From, Status) ->
-	gen_server:call(To, {status_change, From, Status}).
+forward(Name, Tid, From, Status) ->
+	Acc = view_sup:get_pid(Tid, ?MODULE, Name),
+	gen_server:call(Acc, {status_change, From, Status}).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init({Name, Tid, Deads, Alives, Suspicious}) ->
-	S = #state{name=Name, tid=Tid, deads=Deads, alives=Alives, suspicious=Suspicious},
-	view_sup:set_pid(Tid, Name, self()),
+init({Name, Tid, DList, AList, SList}) ->
+	S = #state{name=Name, tid=Tid, d_list=DList, a_list=AList, s_list=SList},
+	view_sup:set_pid(Tid, ?MODULE,  Name, self()),
 	{ok, S}.
 
 handle_call({status_change, ViewName, Status}, _From, S) ->
-	{Deads, Alives, Suspicious} = update_lists(ViewName, Status, S#state.deads, S#state.alives, S#state.suspicious),
-	{DeadSum, AliveSum, SuspiciousSum} = sum(Deads, Alives, Suspicious),
-	Core = view_sup:get_pid(S#state.tid, view_core),
-	forward(Core, S#state.name, DeadSum, AliveSum, SuspiciousSum),
-	{reply, ok, S#state{deads=Deads, alives=Alives, suspicious=Suspicious}}.
+	{DList, AList, SList} = update_lists(ViewName, Status, S#state.d_list, S#state.a_list, S#state.s_list),
+	{DSum, ASum, SSum} = sum(DList, AList, SList),
+	view_core:forward(S#state.name, S#state.tid, DSum, ASum, SSum),
+	{reply, ok, S#state{d_list=DList, a_list=AList, s_list=SList}}.
 
 terminate(_Reason, _State) ->
 	ok.
@@ -49,11 +49,11 @@ terminate(_Reason, _State) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-update_lists(ViewName, Status, Deads, Alives, Suspicious) ->
-	Weight = get_weight(ViewName, Deads, Alives, Suspicious),
-	D = remove(ViewName, Deads),
-	A = remove(ViewName, Alives),
-	S = remove(ViewName, Suspicious),
+update_lists(ViewName, Status, DList, AList, SList) ->
+	Weight = get_weight(ViewName, DList, AList, SList),
+	D = remove(ViewName, DList),
+	A = remove(ViewName, AList),
+	S = remove(ViewName, SList),
 	update(ViewName, Weight, Status, D, A, S).
 	
 remove(ViewName, List) ->
@@ -65,34 +65,31 @@ remove(ViewName, List) ->
 			List
 	end.
 
-update(ViewName, Weight, dead, Deads, Alives, Suspicious) ->
-	NewDeads = append_view(ViewName, Weight, Deads),
-	{NewDeads, Alives, Suspicious};
-update(ViewName, Weight, alive, Deads, Alives, Suspicious) ->
-	NewAlives = append_view(ViewName, Weight, Alives),
-	{Deads, NewAlives, Suspicious};
-update(ViewName, Weight, suspicious, Deads, Alives, Suspicious) ->
-	NewSuspicious = append_view(ViewName, Weight, Suspicious),
-	{Deads, Alives, NewSuspicious}.
+update(ViewName, Weight, dead, DList, AList, SList) ->
+	NewDList = append_view(ViewName, Weight, DList),
+	{NewDList, AList, SList};
+update(ViewName, Weight, alive, DList, AList, SList) ->
+	NewAList = append_view(ViewName, Weight, AList),
+	{DList, NewAList, SList};
+update(ViewName, Weight, suspicious, DList, AList, SList) ->
+	NewSList = append_view(ViewName, Weight, SList),
+	{DList, AList, NewSList}.
 
 append_view(ViewName, Weight, List) ->
 	[{ViewName, Weight}|List].
 
-sum(Deads, Alives, Suspicious) ->
-	DeadSum = sum2(Deads),
-	AliveSum = sum2(Alives),
-	SuspiciousSum = sum2(Suspicious),
-	{DeadSum, AliveSum, SuspiciousSum}.
+sum(DList, AList, SList) ->
+	DSum = sum2(DList),
+	ASum = sum2(AList),
+	SSum = sum2(SList),
+	{DSum, ASum, SSum}.
 
 sum2(TupleList) ->
 	{_First, Second} = lists:unzip(TupleList),
 	lists:sum(Second).
 
-forward(Core, Name, DeadSum, AliveSum, SuspiciousSum) ->
-	view_core:forward(Core, Name, DeadSum, AliveSum, SUspiciousSum).
-
-get_weight(ViewName, Deads, Alives, Suspicious) ->
-	List = lists:append([Deads, Alives, Suspicious]),
+get_weight(ViewName, DList, AList, SList) ->
+	List = lists:append([DList, AList, SList]),
 	{ViewName, Weight} = lists:keyfind(ViewName, 1, List),
 	Weight.
 

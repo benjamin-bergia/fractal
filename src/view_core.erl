@@ -27,7 +27,7 @@ start_link(Args) ->
 	gen_fsm:start_link(?MODULE, Args, []).
 
 forward(Tid, From, DeadSum, AliveSum, SuspiciousSum) ->
-	To = view_sup:get_pid(Tid, view_core),
+	To = view_sup:get_pid(Tid, ?MODULE),
 	Msg = {From, {dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}},
 	gen_fsm:sync_send_event(To, From, Msg).
 
@@ -45,7 +45,7 @@ init({Tid, {DE, DT}, {AE, AT}, {SE, ST}}) ->
 
 dead({dead_acc, DList, AList, SList}, _From, S) ->
 	Status = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, DList, AList, SList),
-	view_tx:forward(S#state.tid, view_core, Status),
+	view_tx:forward(S#state.tid, ?MODULE, Status),
 	{reply, ok, Status, S};
 dead(_Event, _From, S) ->
 	{reply, ok, dead, S}.
