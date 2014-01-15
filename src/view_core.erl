@@ -3,9 +3,9 @@
 -define(SERVER, ?MODULE).
 
 -record(state, {name, tid,
-		dead_engine, dead_threshold,
-		alive_engine, alive_threshold,
-		suspicious_engine, suspicious_threshold}).
+		dead_ngn, dead_thd,
+		alive_ngn, alive_thd,
+		suspicious_ngn, suspicious_thd}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -26,7 +26,8 @@
 start_link(Args) ->
 	gen_fsm:start_link(?MODULE, Args, []).
 
-forward(To, From, DeadSum, AliveSum, SuspiciousSum) ->
+forward(Tid, From, DeadSum, AliveSum, SuspiciousSum) ->
+	To = view_sup:get_pid(Tid, view_core),
 	Msg = {From, {dead, DeadSum}, {alive, AliveSum}, {suspicious, SuspiciousSum}},
 	gen_fsm:sync_send_event(To, From, Msg).
 
@@ -35,36 +36,35 @@ forward(To, From, DeadSum, AliveSum, SuspiciousSum) ->
 %% ------------------------------------------------------------------
 
 init({Tid, {DE, DT}, {AE, AT}, {SE, ST}}) ->
-	S = #state{name=?MODULE,
-		   tid=Tid,
-		   dead_engine=DE,
-		   dead_threshold=DT,
-		   alive_engine=AE,
-		   alive_threshold=AT,
-		   suspicious_engine=SE,
-		   suspicious_threshold=ST},
 	view_sup:set_pid(Tid, ?MODULE, self()),
+	S = #state{name=?MODULE, tid=Tid,
+		   dead_ngn=DE, dead_thd=DT,
+		   alive_ngn=AE, alive_thd=AT,
+		   suspicious_ngn=SE, suspicious_thd=ST},
 	{ok, dead, S}.
 
 dead({dead_acc, DList, AList, SList}, _From, S) ->
-	StateName = start_engine(dead, S#state.dead_engine, S#state.dead_threshold, DList, AList, SList),
-	{reply, ok, StateName, S};
+	Status = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, DList, AList, SList),
+	view_tx:forward(S#state.tid, view_core, Status),
+	{reply, ok, Status, S};
 dead(_Event, _From, S) ->
 	{reply, ok, dead, S}.
 
 alive({alive_acc, DList, AList, SList}, _From, S) ->
-	StateName = start_engine(alive, S#state.alive_engine, S#state.alive_threshold, DList, AList, SList),
-	{reply, ok, StateName, S};
+	Status = start_engine(alive, S#state.alive_ngn, S#state.alive_thd, DList, AList, SList),
+	view_tx:forward(S#state.tid, view_core, Status),
+	{reply, ok, Status, S};
 alive(_Event, _From, S) ->
 	{reply, ok, alive, S}.
 
 suspicious({suspicious_acc, DList, AList, SList}, _From, S) ->
-	StateName = start_engine(alive, S#state.suspicious_engine, S#state.suspicious_threshold, DList, AList, SList),
-	{reply, ok, StateName, S};
+	Status = start_engine(alive, S#state.suspicious_ngn, S#state.suspicious_thd, DList, AList, SList),
+	view_tx:forward(S#state.tid, view_core, Status),
+	{reply, ok, Status, S};
 suspicious(_Event, _From, S) ->
 	{reply, ok, suspicious, S}.
 
-terminate(_Reason, _StateName, _State) ->
+terminate(_Reason, _Status, _State) ->
 	ok.
 
 %% ------------------------------------------------------------------
