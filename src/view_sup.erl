@@ -3,7 +3,9 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/1, set_pid/3, get_pid/2]).
+-export([start_link/1,
+	 set_pid/3, set_pid/4,
+	 get_pid/2, get_pid/3]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -39,9 +41,13 @@ init(ViewName) ->
 create_table() ->
 	ets:new(childs, [set, public, {keypos, 1}]).
 
-set_pid(Tid, Name, Pid) ->
-	ets:insert(Tid, {Name, Pid}).
+set_pid(Tid, Module, Pid) ->
+	set_pid(Tid, Module, Module, Pid).
+set_pid(Tid, Module, Name, Pid) ->
+	ets:insert(Tid, {{Module, Name}, Pid}).
 
-get_pid(Tid, Name) ->
-	[{Name, Pid}] = ets:lookup(Tid, Name),
+get_pid(Tid, Module) ->
+	get_pid(Tid, Module, Module).
+get_pid(Tid, Module, Name) ->
+	[{{Module, Name}, Pid}] = ets:lookup(Tid, {Module, Name}),
 	Pid.
