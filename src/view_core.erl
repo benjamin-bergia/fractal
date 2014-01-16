@@ -26,7 +26,7 @@
 start_link(Args) ->
 	gen_fsm:start_link(?MODULE, Args, []).
 
-forward(Tid, From, DSum, ASum, SSum) ->
+forward(From, Tid, DSum, ASum, SSum) ->
 	To = view_sup:get_pid(Tid, ?MODULE),
 	Msg = {From, {dead, DSum}, {alive, ASum}, {suspicious, SSum}},
 	gen_fsm:sync_send_event(To, From, Msg).
@@ -43,21 +43,21 @@ init({Tid, {DE, DT}, {AE, AT}, {SE, ST}}) ->
 		   suspicious_ngn=SE, suspicious_thd=ST},
 	{ok, dead, S}.
 
-dead({dead_acc, Dead, Alive, Suspicious}, _From, S) ->
+dead({dead, Dead, Alive, Suspicious}, _From, S) ->
 	{stop, Status} = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, ?MODULE, Status),
 	{reply, ok, Status, S};
 dead(_Event, _From, S) ->
 	{reply, ok, dead, S}.
 
-alive({alive_acc, Dead, Alive, Suspicious}, _From, S) ->
+alive({alive, Dead, Alive, Suspicious}, _From, S) ->
 	{stop, Status} = start_engine(alive, S#state.alive_ngn, S#state.alive_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, view_core, Status),
 	{reply, ok, Status, S};
 alive(_Event, _From, S) ->
 	{reply, ok, alive, S}.
 
-suspicious({suspicious_acc, Dead, Alive, Suspicious}, _From, S) ->
+suspicious({suspicious, Dead, Alive, Suspicious}, _From, S) ->
 	{stop, Status} = start_engine(alive, S#state.suspicious_ngn, S#state.suspicious_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, view_core, Status),
 	{reply, ok, Status, S};

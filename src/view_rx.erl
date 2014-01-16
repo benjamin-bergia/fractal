@@ -2,7 +2,7 @@
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
--record(state, {name, tid, accumulator, subscriptions}).
+-record(state, {name, tid, subscriptions}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -30,8 +30,8 @@ forward(Pid, From, Status) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init({Name, Tid, Accumulator, Subscriptions}) ->
-	S = #state{name=Name, tid=Tid, accumulator=Accumulator, subscriptions=Subscriptions},
+init({Name, Tid, Subscriptions}) ->
+	S = #state{name=Name, tid=Tid, subscriptions=Subscriptions},
 	view_sup:set_pid(Tid, ?MODULE, Name, self()),
 	subscribe(Subscriptions),	
 	{ok, S}.

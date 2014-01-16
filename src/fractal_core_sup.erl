@@ -9,8 +9,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(N, I, Args, Type), {N, {I, start_link, Args}, permanent, 5000, Type, [I]}).
+-define(VIEW(Name, Lowers), {Name, {view_sup, start_link, [{Name, Lowers}]}, permanent, 5000, supervisor, [view_sup]}).
 
 %% ===================================================================
 %% API functions
@@ -24,9 +23,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	Childs = [?CHILD("Host", view_sup, ["Host", [{"Memory", 1}, {"Cpu", 1}, {"Disk", 1}]], supervisor),
-		 ?CHILD("Memory", view_sup, ["Memory", [{"test", 1}]], supervisor),
-		 ?CHILD("Cpu", view_sup, ["Cpu", [{"test", 1}]], supervisor),
-		 ?CHILD("Disk", view_sup, ["Disk", [{"test", 1}]], supervisor)],
+	Childs = [?VIEW("Host", [{"Memory", 1}, {"Cpu", 1}, {"Disk", 1}]),
+		 ?VIEW("Memory", [{"test", 1}]),
+		 ?VIEW("Cpu", [{"test", 1}]),
+		 ?VIEW("Disk", [{"test", 1}])],
 	{ok, {{one_for_one, 5, 10}, Childs}}.
 
