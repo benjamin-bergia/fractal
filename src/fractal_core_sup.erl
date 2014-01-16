@@ -10,7 +10,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(I, Args, Type), {I, {I, start_link, Args}, permanent, 5000, Type, [I]}).
+-define(CHILD(N, I, Args, Type), {N, {I, start_link, Args}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
@@ -24,5 +24,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, [?CHILD(view_sup, ["myview"], supervisor)]} }.
+	Childs = [?CHILD("Host", view_sup, ["Host", [{"Memory", 1}, {"Cpu", 1}, {"Disk", 1}]], supervisor),
+		 ?CHILD("Memory", view_sup, ["Memory", [{"test", 1}]], supervisor),
+		 ?CHILD("Cpu", view_sup, ["Cpu", [{"test", 1}]], supervisor),
+		 ?CHILD("Disk", view_sup, ["Disk", [{"test", 1}]], supervisor)],
+	{ok, {{one_for_one, 5, 10}, Childs}}.
 
