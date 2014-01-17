@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1, forward/2]).
+-export([start_link/3, forward/2]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -20,8 +20,8 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(Args) ->
-	gen_server:start_link(?MODULE, Args, []).
+start_link(Name, Tid, Subscriptions) ->
+	gen_server:start_link(?MODULE, [Name, Tid, Subscriptions], []).
 
 forward(From, Status) ->
 	Pids = gproc:lookup_pids({p, l, From}),

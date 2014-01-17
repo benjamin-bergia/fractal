@@ -10,11 +10,6 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(TX(Tid, ViewName), {view_tx, {view_tx, start_link, [{Tid, ViewName}]}, permanent, 5000, worker, [view_tx]}).
--define(CORE(Tid, DE, DT, AE, AT, SE, ST), {view_core, {view_core, start_link, [Tid, DE, DT, AE, AT, SE, ST]}, permanent, 5000, worker, [view_core]}).
--define(ACC(Name, State, Tid, Lowers), {Name, {view_acc, start_link, [{State, Tid, Lowers, [], []}]}, permanent, 5000, worker, [view_acc]}).
--define(RX(Name, State, Tid, Subs), {Name, {view_rx, start_link, [{State, Tid, Subs}]}, permanent, 5000, worker, [view_rx]}).
-
 %% ===================================================================
 %% API functions
 %% ===================================================================
@@ -26,21 +21,21 @@ start_link(Args) ->
 %% Supervisor callbacks
 %% ===================================================================
 
-init({ViewName, Lowers}) ->
-	Tid = create_table(),
+init({ViewName, Lowers, DE, DT, AE, AT, SE, ST}) ->
+	Tid = create_table(ViewName),
 	{Subs, _Weights} = lists:unzip(Lowers),
-	View = [?TX(Tid, ViewName),
-		?CORE(Tid, weighted_engine, 1, weighted_engine, 1, weighted_engine, 1),
-		?ACC(dead_acc, dead, Tid, Lowers),
-		?RX(dead_rx, dead, Tid, Subs),
-		?ACC(alive_acc, alive, Tid, Lowers),
-		?RX(alive_rx, alive, Tid, Subs),
-		?ACC(suspicious_acc, suspicious, Tid, Lowers),
-		?RX(suspicious_rx, suspicious, Tid, Subs)],
+	View = [{view_tx,	{view_tx,	start_link, [Tid, ViewName]},				permanent, 5000, worker, [view_tx]},
+		{view_core, 	{view_core,	start_link, [Tid, DE, DT, AE, AT, SE, ST]},		permanent, 5000, worker, [view_core]},
+		{dead_acc,	{view_acc,	start_link, [{dead, Tid, Lowers, [], []}]},		permanent, 5000, worker, [view_acc]},
+		{dead_rx,	{view_rx,	start_link, [dead, Tid, Subs]},				permanent, 5000, worker, [view_rx]},
+		{alive_acc,	{view_acc,	start_link, [{alive, Tid, Lowers, [], []}]},		permanent, 5000, worker, [view_acc]},
+		{alive_rx,	{view_rx,	start_link, [alive, Tid, Subs]},			permanent, 5000, worker, [view_rx]},
+		{suspicious_acc,{view_acc,	start_link, [{suspicious, Tid, Lowers, [], []}]},	permanent, 5000, worker, [view_acc]},
+		{suspicious_rx, {view_rx,	start_link, [suspicious, Tid, Subs]},			permanent, 5000, worker, [view_rx]}],
 	{ok, {{one_for_one, 5, 10}, View}}.
 
-create_table() ->
-	ets:new(childs, [set, public, {keypos, 1}]).
+create_table(ViewName) ->
+	ets:new(ViewName, [set, public, {keypos, 1}]).
 
 set_pid(Tid, Module, Pid) ->
 	set_pid(Tid, Module, Module, Pid).
