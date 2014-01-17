@@ -32,29 +32,12 @@ forward(Tid, Status) ->
 %% ------------------------------------------------------------------
 
 init({Tid, ViewName}) ->
-	S = #state{name=?MODULE, tid=Tid, view_name=ViewName},
 	view_sup:set_pid(Tid, ?MODULE, self()),
-	{ok, S}.
+	{ok, #state{name=?MODULE, tid=Tid, view_name=ViewName}}.
 
 handle_call({status_change, Status}, _From, S) ->
-	propagate(S#state.view_name, Status),
+	view_rx:forward(S#state.view_name, Status),
 	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
 	ok.
-
-%% ------------------------------------------------------------------
-%% Internal Function Definitions
-%% ------------------------------------------------------------------
-
-propagate(ViewName, Status) ->
-	Pids = resolve(ViewName),
-	Txer = fun(Pid) ->
-			view_rx:forward(Pid, ViewName, Status)
-		end,
-	list:all(Txer, Pids).
-
-resolve(ViewName) ->
-	Result = gproc:lookup_pids({p, l, ViewName}),
-	{Pids, _Values} = lists:unzip(Result),
-	Pids.
