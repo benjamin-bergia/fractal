@@ -27,8 +27,7 @@ start(Args) ->
 
 init(Status, Threshold, StatusList) ->
 	[First|[Second|_T]] = inverted_insertion_sort(StatusList),
-	NewStatus = compare(Status, Threshold, First, Second),
-	{stop, NewStatus}.
+	{stop, compare(Status, Threshold, First, Second)}.
 
 terminate(_Reason, Status) ->
 	{ok, Status}.
