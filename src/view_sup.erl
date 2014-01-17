@@ -11,7 +11,7 @@
 -export([init/1]).
 
 -define(TX(Tid, ViewName), {view_tx, {view_tx, start_link, [{Tid, ViewName}]}, permanent, 5000, worker, [view_tx]}).
--define(CORE(Tid, DE, DT, AE, AT, SE, ST), {view_core, {view_core, start_link, [{Tid, {DE, DT}, {AE, AT}, {SE, ST}}]}, permanent, 5000, worker, [view_core]}).
+-define(CORE(Tid, DE, DT, AE, AT, SE, ST), {view_core, {view_core, start_link, [Tid, DE, DT, AE, AT, SE, ST]}, permanent, 5000, worker, [view_core]}).
 -define(ACC(Name, State, Tid, Lowers), {Name, {view_acc, start_link, [{State, Tid, Lowers, [], []}]}, permanent, 5000, worker, [view_acc]}).
 -define(RX(Name, State, Tid, Subs), {Name, {view_rx, start_link, [{State, Tid, Subs}]}, permanent, 5000, worker, [view_rx]}).
 
