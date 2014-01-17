@@ -8,13 +8,13 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1, forward/3]).
+-export([start_link/1, forward/2]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, handle_call/3, terminate/2]).
+-export([init/3, handle_cast/2, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -23,22 +23,25 @@
 start_link(Args) ->
 	gen_server:start_link(?MODULE, Args, []).
 
-forward(Pid, From, Status) ->
-	gen_server:call(Pid, {status_change, From, Status}).
+forward(From, Status) ->
+	Pids = gproc:lookup_pids({p, l, From}),
+	Send = fun(Pid) ->
+			gen_server:cast(Pid, {status_change, From, Status})
+		end,
+	lists:all(Send, Pids).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init({Name, Tid, Subscriptions}) ->
-	S = #state{name=Name, tid=Tid, subscriptions=Subscriptions},
+init(Name, Tid, Subscriptions) ->
 	view_sup:set_pid(Tid, ?MODULE, Name, self()),
 	subscribe(Subscriptions),	
-	{ok, S}.
+	{ok, #state{name=Name, tid=Tid, subscriptions=Subscriptions}}.
 
-handle_call({status_change, View, Status}, _From, S) ->
+handle_cast({status_change, View, Status}, S) ->
 	view_acc:forward(S#state.name, S#state.tid, View, Status),
-	{reply, ok, S}.
+	{noreply, S}.
 
 terminate(_Reason, _State) ->
 	ok.
@@ -48,8 +51,8 @@ terminate(_Reason, _State) ->
 %% ------------------------------------------------------------------
 
 subscribe(Names) ->
-	F = fun(Name, Acc) ->
+	Register = fun(Name, Acc) ->
 			[{Name, sub}|Acc]
 		end,
-	Subscriptions = lists:foldl(F, [], Names),
+	Subscriptions = lists:foldl(Register, [], Names),
 	gproc:mreg(p, l, Subscriptions).
