@@ -17,14 +17,14 @@
 %% gen_fsm Function Exports
 %% ------------------------------------------------------------------
 
--export([init/7, dead/2, alive/2, suspicious/2, terminate/3]).
+-export([init/1, dead/2, alive/2, suspicious/2, terminate/3]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
 start_link(Tid, DE, DT, AE, AT, SE, ST) ->
-	gen_fsm:start_link(?MODULE, [Tid, DE, DT, AE, AT, SE, ST], []).
+	gen_fsm:start_link(?MODULE, {Tid, DE, DT, AE, AT, SE, ST}, []).
 
 %% @doc API function
 %% @@doc Forward a message containing the sum of Weights for each State
@@ -39,7 +39,7 @@ forward(From, Tid, DSum, ASum, SSum) ->
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 
-init(Tid, DE, DT, AE, AT, SE, ST) ->
+init({Tid, DE, DT, AE, AT, SE, ST}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
 	S = #state{name=?MODULE, tid=Tid,
 		   dead_ngn=DE, dead_thd=DT,

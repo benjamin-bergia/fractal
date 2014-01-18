@@ -3,7 +3,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/1,
+-export([start_link/8,
 	 set_pid/3, set_pid/4,
 	 get_pid/2, get_pid/3]).
 
@@ -14,24 +14,24 @@
 %% API functions
 %% ===================================================================
 
-start_link(Args) ->
-    supervisor:start_link(?MODULE, Args).
+start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST) ->
+    supervisor:start_link(?MODULE, {ViewName, Lowers, DE, DT, AE, AT, SE, ST}).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
 init({ViewName, Lowers, DE, DT, AE, AT, SE, ST}) ->
-	Tid = create_table(ViewName),
+	Tid = create_table(childs),
 	{Subs, _Weights} = lists:unzip(Lowers),
-	View = [{view_tx,	{view_tx,	start_link, [Tid, ViewName]},				permanent, 5000, worker, [view_tx]},
-		{view_core, 	{view_core,	start_link, [Tid, DE, DT, AE, AT, SE, ST]},		permanent, 5000, worker, [view_core]},
-		{dead_acc,	{view_acc,	start_link, [{dead, Tid, Lowers, [], []}]},		permanent, 5000, worker, [view_acc]},
-		{dead_rx,	{view_rx,	start_link, [dead, Tid, Subs]},				permanent, 5000, worker, [view_rx]},
-		{alive_acc,	{view_acc,	start_link, [{alive, Tid, Lowers, [], []}]},		permanent, 5000, worker, [view_acc]},
-		{alive_rx,	{view_rx,	start_link, [alive, Tid, Subs]},			permanent, 5000, worker, [view_rx]},
-		{suspicious_acc,{view_acc,	start_link, [{suspicious, Tid, Lowers, [], []}]},	permanent, 5000, worker, [view_acc]},
-		{suspicious_rx, {view_rx,	start_link, [suspicious, Tid, Subs]},			permanent, 5000, worker, [view_rx]}],
+	View = [{view_tx,	{view_tx,	start_link, [Tid, ViewName]},			permanent, 5000, worker, [view_tx]},
+		{view_core, 	{view_core,	start_link, [Tid, DE, DT, AE, AT, SE, ST]},	permanent, 5000, worker, [view_core]},
+		{dead_acc,	{view_acc,	start_link, [dead, Tid, Lowers, [], []]},	permanent, 5000, worker, [view_acc]},
+		{dead_rx,	{view_rx,	start_link, [dead, Tid, Subs]},			permanent, 5000, worker, [view_rx]},
+		{alive_acc,	{view_acc,	start_link, [alive, Tid, Lowers, [], []]},	permanent, 5000, worker, [view_acc]},
+		{alive_rx,	{view_rx,	start_link, [alive, Tid, Subs]},		permanent, 5000, worker, [view_rx]},
+		{suspicious_acc,{view_acc,	start_link, [suspicious, Tid, Lowers, [], []]},	permanent, 5000, worker, [view_acc]},
+		{suspicious_rx, {view_rx,	start_link, [suspicious, Tid, Subs]},		permanent, 5000, worker, [view_rx]}],
 	{ok, {{one_for_one, 5, 10}, View}}.
 
 create_table(ViewName) ->

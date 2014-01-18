@@ -9,7 +9,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(VIEW(Name, Lowers), {Name, {view_sup, start_link, [{Name, Lowers}]}, permanent, 5000, supervisor, [view_sup]}).
+-define(VIEW(Name, Lowers), {Name, {view_sup, start_link, [Name, Lowers, weighted_engine, 1, weighted_engine, 1, weighted_engine, 1]}, permanent, 5000, supervisor, [view_sup]}).
 
 %% ===================================================================
 %% API functions

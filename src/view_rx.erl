@@ -14,14 +14,14 @@
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/3, handle_cast/2, terminate/2]).
+-export([init/1, handle_cast/2, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
 start_link(Name, Tid, Subscriptions) ->
-	gen_server:start_link(?MODULE, [Name, Tid, Subscriptions], []).
+	gen_server:start_link(?MODULE, {Name, Tid, Subscriptions}, []).
 
 forward(From, Status) ->
 	Pids = gproc:lookup_pids({p, l, From}),
@@ -34,7 +34,7 @@ forward(From, Status) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Name, Tid, Subscriptions) ->
+init({Name, Tid, Subscriptions}) ->
 	view_sup:set_pid(Tid, ?MODULE, Name, self()),
 	subscribe(Subscriptions),	
 	{ok, #state{name=Name, tid=Tid, subscriptions=Subscriptions}}.

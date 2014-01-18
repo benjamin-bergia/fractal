@@ -14,14 +14,14 @@
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/2, handle_call/3, terminate/2]).
+-export([init/1, handle_call/3, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
 start_link(Tid, ViewName) ->
-	gen_server:start_link(?MODULE, [Tid, ViewName], []).
+	gen_server:start_link(?MODULE, {Tid, ViewName}, []).
 
 forward(Tid, Status) ->
 	TX = view_sup:get_pid(Tid, ?MODULE),
@@ -31,7 +31,7 @@ forward(Tid, Status) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Tid, ViewName) ->
+init({Tid, ViewName}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
 	{ok, #state{name=?MODULE, tid=Tid, view_name=ViewName}}.
 

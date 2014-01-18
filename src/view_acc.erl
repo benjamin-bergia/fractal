@@ -14,14 +14,14 @@
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/5, handle_cast/2, terminate/2]).
+-export([init/1, handle_cast/2, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
 start_link(Name, Tid, DList, AList, SList) ->
-	gen_server:start_link(?MODULE, [Name, Tid, DList, AList, SList], []).
+	gen_server:start_link(?MODULE, {Name, Tid, DList, AList, SList}, []).
 
 forward(Name, Tid, From, Status) ->
 	Acc = view_sup:get_pid(Tid, ?MODULE, Name),
@@ -31,7 +31,7 @@ forward(Name, Tid, From, Status) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Name, Tid, DList, AList, SList) ->
+init({Name, Tid, DList, AList, SList}) ->
 	view_sup:set_pid(Tid, ?MODULE,  Name, self()),
 	{ok, #state{name=Name, tid=Tid, d_list=DList, a_list=AList, s_list=SList}}.
 
