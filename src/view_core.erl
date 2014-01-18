@@ -2,7 +2,7 @@
 -behaviour(gen_fsm).
 -define(SERVER, ?MODULE).
 
--record(state, {name, tid,
+-record(state, {tid,
 		dead_ngn, dead_thd,
 		alive_ngn, alive_thd,
 		suspicious_ngn, suspicious_thd}).
@@ -33,7 +33,7 @@ start_link(Tid, DE, DT, AE, AT, SE, ST) ->
 forward(From, Tid, DSum, ASum, SSum) ->
 	To = view_sup:get_pid(Tid, ?MODULE),
 	Msg = {From, {dead, DSum}, {alive, ASum}, {suspicious, SSum}},
-	gen_fsm:send_event(To, From, Msg).
+	gen_fsm:send_event(To, Msg).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
@@ -41,7 +41,7 @@ forward(From, Tid, DSum, ASum, SSum) ->
 
 init({Tid, DE, DT, AE, AT, SE, ST}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
-	S = #state{name=?MODULE, tid=Tid,
+	S = #state{tid=Tid,
 		   dead_ngn=DE, dead_thd=DT,
 		   alive_ngn=AE, alive_thd=AT,
 		   suspicious_ngn=SE, suspicious_thd=ST},
@@ -50,23 +50,23 @@ init({Tid, DE, DT, AE, AT, SE, ST}) ->
 dead({dead, Dead, Alive, Suspicious}, S) ->
 	{stop, Status} = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, ?MODULE, Status),
-	{reply, ok, Status, S};
+	{next_state, Status, S};
 dead(_Event, S) ->
-	{reply, ok, dead, S}.
+	{next_state, dead, S}.
 
 alive({alive, Dead, Alive, Suspicious}, S) ->
 	{stop, Status} = start_engine(alive, S#state.alive_ngn, S#state.alive_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, view_core, Status),
-	{reply, ok, Status, S};
+	{next_state, Status, S};
 alive(_Event, S) ->
-	{reply, ok, alive, S}.
+	{next_state, alive, S}.
 
 suspicious({suspicious, Dead, Alive, Suspicious}, S) ->
 	{stop, Status} = start_engine(alive, S#state.suspicious_ngn, S#state.suspicious_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, view_core, Status),
-	{reply, ok, Status, S};
+	{next_state, Status, S};
 suspicious(_Event, S) ->
-	{reply, ok, suspicious, S}.
+	{next_state, suspicious, S}.
 
 terminate(_Reason, _Status, _State) ->
 	ok.

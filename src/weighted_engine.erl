@@ -1,36 +1,13 @@
 -module(weighted_engine).
--behaviour(gen_server).
--define(SERVER, ?MODULE).
 
-%% ------------------------------------------------------------------
-%% API Function Exports
-%% ------------------------------------------------------------------
+-export([start/3]).
 
--export([start/1]).
+start(Status, Threshold, StatusList) ->
+	init({Status, Threshold, StatusList}).
 
-%% ------------------------------------------------------------------
-%% gen_server Function Exports
-%% ------------------------------------------------------------------
-
--export([init/3, terminate/2]).
-
-%% ------------------------------------------------------------------
-%% API Function Definitions
-%% ------------------------------------------------------------------
-
-start(Args) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, Args, []).
-
-%% ------------------------------------------------------------------
-%% gen_server Function Definitions
-%% ------------------------------------------------------------------
-
-init(Status, Threshold, StatusList) ->
+init({Status, Threshold, StatusList}) ->
 	[First|[Second|_T]] = inverted_insertion_sort(StatusList),
-	{stop, compare(Status, Threshold, First, Second)}.
-
-terminate(_Reason, Status) ->
-	{ok, Status}.
+	compare(Status, Threshold, First, Second).
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
