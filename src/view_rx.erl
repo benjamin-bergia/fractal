@@ -48,7 +48,8 @@ start_link(Name, Tid, Subscriptions) ->
 forward(From, Status) ->
 	Pids = gproc:lookup_pids({p, l, From}),
 	Send = fun(Pid) ->
-			gen_server:cast(Pid, {status_change, From, Status})
+			gen_server:cast(Pid, {status_change, From, Status}),
+			true
 		end,
 	lists:all(Send, Pids).
 
