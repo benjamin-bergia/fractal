@@ -54,11 +54,11 @@ init({ViewName, Lowers, DE, DT, AE, AT, SE, ST}) ->
 	{Subs, _Weights} = lists:unzip(Lowers),
 	View = [{view_tx,	{view_tx,	start_link, [Tid, ViewName]},			permanent, 5000, worker, [view_tx]},
 		{view_core, 	{view_core,	start_link, [Tid, DE, DT, AE, AT, SE, ST]},	permanent, 5000, worker, [view_core]},
-		{dead_acc,	{view_acc,	start_link, [dead, Tid, Lowers, [], []]},	permanent, 5000, worker, [view_acc]},
+		{dead_acc,	{view_acc,	start_link, [dead, Tid, Lowers]},		permanent, 5000, worker, [view_acc]},
 		{dead_rx,	{view_rx,	start_link, [dead, Tid, Subs]},			permanent, 5000, worker, [view_rx]},
-		{alive_acc,	{view_acc,	start_link, [alive, Tid, Lowers, [], []]},	permanent, 5000, worker, [view_acc]},
+		{alive_acc,	{view_acc,	start_link, [alive, Tid, Lowers]},		permanent, 5000, worker, [view_acc]},
 		{alive_rx,	{view_rx,	start_link, [alive, Tid, Subs]},		permanent, 5000, worker, [view_rx]},
-		{suspicious_acc,{view_acc,	start_link, [suspicious, Tid, Lowers, [], []]},	permanent, 5000, worker, [view_acc]},
+		{suspicious_acc,{view_acc,	start_link, [suspicious, Tid, Lowers]},		permanent, 5000, worker, [view_acc]},
 		{suspicious_rx, {view_rx,	start_link, [suspicious, Tid, Subs]},		permanent, 5000, worker, [view_rx]}],
 	{ok, {{one_for_one, 5, 10}, View}}.
 
