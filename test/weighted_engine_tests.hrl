@@ -1,11 +1,12 @@
 -include_lib("eunit/include/eunit.hrl").
 -define(STATUSLIST(D, A, S), [{dead, D}, {alive, A}, {suspicious, S}]).
+-define(REPLY(Result), {reply, Result, []}).
 
-init_test() ->
-	?assertEqual(alive, init({dead, 5, ?STATUSLIST(3, 6, 0)})),
-	?assertEqual(dead, init({dead, 5, ?STATUSLIST(3, 4, 0)})),
-	?assertEqual(suspicious, init({dead, 5, ?STATUSLIST(3, 6, 6)})),
-	?assertEqual(dead, init({dead, 5, ?STATUSLIST(3, 3, 3)})).
+handle_call_test() ->
+	?assertEqual(?REPLY(alive), handle_call({input, dead, 5, ?STATUSLIST(3, 6, 0)}, test, [])),
+	?assertEqual(?REPLY(dead), handle_call({input, dead, 5, ?STATUSLIST(3, 4, 0)}, test, [])),
+	?assertEqual(?REPLY(suspicious), handle_call({input, dead, 5, ?STATUSLIST(3, 6, 6)}, test, [])),
+	?assertEqual(?REPLY(dead), handle_call({input, dead, 5, ?STATUSLIST(3, 3, 3)}, test, [])).
 
 inverted_insertion_sort_test() ->
 	List = [{0, 1}, {a, 5}, {"test", 3}],
