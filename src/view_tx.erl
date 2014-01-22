@@ -78,7 +78,7 @@ init({Tid, ViewName}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({status_change, Status}, S) ->
-	view_rx:forward(S#state.view_name, Status),
+	view:notify(S#state.view_name, Status),
 	{reply, ok, S}.
 
 terminate(_Reason, _State) ->
