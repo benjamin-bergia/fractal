@@ -32,12 +32,6 @@ append_view_test() ->
 	List = [{"test", 3}],
 	?assertEqual(List, append_view("test", 3, [])).
 
-sum_test() ->
-	TL1 = [{2, 4}, {"test", 1}],
-	TL2 = [],
-	TL3 = [{true, 3}],
-	?assertEqual({5, 0, 3}, sum(TL1, TL2, TL3)).
-
 sum2_test() ->
 	TupleList = [{a, 2}, {"test", 4}, {2, 34}],
 	?assertEqual(40, sum2(TupleList)),
