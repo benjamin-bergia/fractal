@@ -1,6 +1,9 @@
 -module(view_core).
 -behaviour(gen_fsm).
--define(SERVER, ?MODULE).
+
+%% ------------------------------------------------------------------
+%% State record
+%% ------------------------------------------------------------------
 
 -record(state, {tid,
 		dead_ngn, dead_thd,
@@ -23,13 +26,35 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Do:
+%% 	Start and link a new core
+%% With:
+%% 	Tid: Supervisor ETS table Id
+%% 	DE: Engine used when dead
+%% 	DT: Threshold used when dead
+%% 	AE: Engine used when alive
+%% 	AT: Threshold used when alive
+%% 	SE: Engine used when suspicious
+%% 	ST: Threshold used when suspicious
+%% @end
+%%--------------------------------------------------------------------
 start_link(Tid, DE, DT, AE, AT, SE, ST) ->
 	gen_fsm:start_link(?MODULE, {Tid, DE, DT, AE, AT, SE, ST}, []).
 
-%% @doc API function
-%% @@doc Forward a message containing the sum of Weights for each State
-%% @@doc Called by view_acc
-%% @spec forward(From::term(), Tid::tid(), DSum::integer(), ASum::integer(), SSum::integer()) -> ok
+%%--------------------------------------------------------------------
+%% @doc
+%% Do:
+%% 	Forward a message to this module
+%% With:
+%% 	From: accumulator name
+%% 	Tid: the supervisor ETS table Id
+%% 	DSum: the sum of the dead views weights
+%% 	ASum: the sum of the alive views weights
+%% 	SSum: the sum of the suspicious views weights
+%% @end
+%%--------------------------------------------------------------------
 forward(From, Tid, DSum, ASum, SSum) ->
 	To = view_sup:get_pid(Tid, ?MODULE),
 	Msg = {From, {dead, DSum}, {alive, ASum}, {suspicious, SSum}},
@@ -39,6 +64,22 @@ forward(From, Tid, DSum, ASum, SSum) ->
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Register process pid in the supervisor ETS Table
+%%	Initialize the State
+%% With:
+%% 	Tid: Supervisor ETS table Id
+%% 	DE: Engine used when dead
+%% 	DT: Threshold used when dead
+%% 	AE: Engine used when alive
+%% 	AT: Threshold used when alive
+%% 	SE: Engine used when suspicious
+%% 	ST: Threshold used when suspicious
+%% @end
+%%--------------------------------------------------------------------
 init({Tid, DE, DT, AE, AT, SE, ST}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
 	S = #state{tid=Tid,
@@ -47,6 +88,21 @@ init({Tid, DE, DT, AE, AT, SE, ST}) ->
 		   suspicious_ngn=SE, suspicious_thd=ST},
 	{ok, dead, S}.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Handle the asynchronous events when dead and coming
+%% 		from the dead accumulator only
+%% 	Get a new Status from the engine
+%% 	Forward the new status to view_tx
+%% With:
+%% 	Dead: {dead, Sum} with Weights Sum of all the dead views
+%% 	Alive: {alive, Sum} with Weights Sum of all the alive views
+%% 	Suspicious: {suspicious, Sum} with Weights Sum of all the 
+%% 					suspicious views
+%% @end
+%%--------------------------------------------------------------------
 dead({dead, Dead, Alive, Suspicious}, S) ->
 	{stop, Status} = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, ?MODULE, Status),
@@ -54,6 +110,21 @@ dead({dead, Dead, Alive, Suspicious}, S) ->
 dead(_Event, S) ->
 	{next_state, dead, S}.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Handle the asynchronous events when alive and coming
+%% 		from the alive accumulator only
+%% 	Get a new Status from the engine
+%% 	Forward the new status to view_tx
+%% With:
+%% 	Dead: {dead, Sum} with Weights Sum of all the dead views
+%% 	Alive: {alive, Sum} with Weights Sum of all the alive views
+%% 	Suspicious: {suspicious, Sum} with Weights Sum of all the 
+%% 					suspicious views
+%% @end
+%%--------------------------------------------------------------------
 alive({alive, Dead, Alive, Suspicious}, S) ->
 	{stop, Status} = start_engine(alive, S#state.alive_ngn, S#state.alive_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, view_core, Status),
@@ -61,6 +132,21 @@ alive({alive, Dead, Alive, Suspicious}, S) ->
 alive(_Event, S) ->
 	{next_state, alive, S}.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Handle the asynchronous events when suspicious and coming
+%% 		from the suspicious accumulator only
+%% 	Get a new Status from the engine
+%% 	Forward the new status to view_tx
+%% With:
+%% 	Dead: {dead, Sum} with Weights Sum of all the dead views
+%% 	Alive: {alive, Sum} with Weights Sum of all the alive views
+%% 	Suspicious: {suspicious, Sum} with Weights Sum of all the 
+%% 					suspicious views
+%% @end
+%%--------------------------------------------------------------------
 suspicious({suspicious, Dead, Alive, Suspicious}, S) ->
 	{stop, Status} = start_engine(alive, S#state.suspicious_ngn, S#state.suspicious_thd, [Dead, Alive, Suspicious]),
 	view_tx:forward(S#state.tid, view_core, Status),
@@ -75,7 +161,19 @@ terminate(_Reason, _Status, _State) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Start a new engine 
+%% With:
+%% 	Status: the current status of the view
+%% 	Engine: the engine to use
+%% 	Threshold: the threshold to use
+%% 	StatusList: List of 2-tuples containing the Sum of Weights for
+%% 			each Status
+%% @end
+%%--------------------------------------------------------------------
 start_engine(Status, Engine, Threshold, StatusList) ->
 	spawn(Engine, start, [Status, Threshold, StatusList]).
 
