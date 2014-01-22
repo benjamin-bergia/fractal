@@ -23,7 +23,8 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	Childs = [?VIEW("Host", [{"Memory", 1}, {"Cpu", 1}, {"Disk", 1}]),
+	Childs = [{engine_sup, {engine_sup, start_link, []}, permanent, 5000, supervisor, [engine_sup]},
+		  ?VIEW("Host", [{"Memory", 1}, {"Cpu", 1}, {"Disk", 1}]),
 		 ?VIEW("Memory", [{"test", 1}]),
 		 ?VIEW("Cpu", [{"test", 1}]),
 		 ?VIEW("Disk", [{"test", 1}])],

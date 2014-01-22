@@ -79,7 +79,7 @@ init({Tid, ViewName}) ->
 %%--------------------------------------------------------------------
 handle_cast({status_change, Status}, S) ->
 	view:notify(S#state.view_name, Status),
-	{reply, ok, S}.
+	{noreply, S}.
 
 terminate(_Reason, _State) ->
 	ok.

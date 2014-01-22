@@ -57,7 +57,7 @@ start_link(Tid, DE, DT, AE, AT, SE, ST) ->
 %%--------------------------------------------------------------------
 forward(From, Tid, DSum, ASum, SSum) ->
 	To = view_sup:get_pid(Tid, ?MODULE),
-	Msg = {From, {dead, DSum}, {alive, ASum}, {suspicious, SSum}},
+	Msg = {From, [{dead, DSum}, {alive, ASum}, {suspicious, SSum}]},
 	gen_fsm:send_event(To, Msg).
 
 %% ------------------------------------------------------------------
@@ -103,9 +103,9 @@ init({Tid, DE, DT, AE, AT, SE, ST}) ->
 %% 					suspicious views
 %% @end
 %%--------------------------------------------------------------------
-dead({dead, Dead, Alive, Suspicious}, S) ->
-	{stop, Status} = start_engine(dead, S#state.dead_ngn, S#state.dead_thd, [Dead, Alive, Suspicious]),
-	view_tx:forward(S#state.tid, ?MODULE, Status),
+dead({dead, Data}, S) ->
+	Status = engine:process(S#state.dead_ngn, dead, S#state.dead_thd, Data),
+	view_tx:forward(S#state.tid, Status),
 	{next_state, Status, S};
 dead(_Event, S) ->
 	{next_state, dead, S}.
@@ -125,9 +125,9 @@ dead(_Event, S) ->
 %% 					suspicious views
 %% @end
 %%--------------------------------------------------------------------
-alive({alive, Dead, Alive, Suspicious}, S) ->
-	{stop, Status} = start_engine(alive, S#state.alive_ngn, S#state.alive_thd, [Dead, Alive, Suspicious]),
-	view_tx:forward(S#state.tid, view_core, Status),
+alive({alive, Data}, S) ->
+	Status = engine:process(S#state.alive_ngn, alive, S#state.alive_thd, Data),
+	view_tx:forward(S#state.tid, Status),
 	{next_state, Status, S};
 alive(_Event, S) ->
 	{next_state, alive, S}.
@@ -147,35 +147,15 @@ alive(_Event, S) ->
 %% 					suspicious views
 %% @end
 %%--------------------------------------------------------------------
-suspicious({suspicious, Dead, Alive, Suspicious}, S) ->
-	{stop, Status} = start_engine(alive, S#state.suspicious_ngn, S#state.suspicious_thd, [Dead, Alive, Suspicious]),
-	view_tx:forward(S#state.tid, view_core, Status),
+suspicious({suspicious, Data}, S) ->
+	Status = engine:process(S#state.suspicious_ngn, suspicious, S#state.suspicious_thd, Data),
+	view_tx:forward(S#state.tid, Status),
 	{next_state, Status, S};
 suspicious(_Event, S) ->
 	{next_state, suspicious, S}.
 
 terminate(_Reason, _Status, _State) ->
 	ok.
-
-%% ------------------------------------------------------------------
-%% Internal Function Definitions
-%% ------------------------------------------------------------------
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Do:
-%% 	Start a new engine 
-%% With:
-%% 	Status: the current status of the view
-%% 	Engine: the engine to use
-%% 	Threshold: the threshold to use
-%% 	StatusList: List of 2-tuples containing the Sum of Weights for
-%% 			each Status
-%% @end
-%%--------------------------------------------------------------------
-start_engine(Status, Engine, Threshold, StatusList) ->
-	spawn(Engine, start, [Status, Threshold, StatusList]).
 
 %% Include the unit tests 
 -ifdef(TEST).

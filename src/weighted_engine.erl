@@ -1,44 +1,73 @@
 -module(weighted_engine).
--export([start/3]).
+-behaviour(gen_server).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
+-export([start_link/0, process/3]).
+
+%% ------------------------------------------------------------------
+%% gen_server Function Exports
+%% ------------------------------------------------------------------
+
+-export([init/1, handle_call/3, terminate/2]).
+
+%% ------------------------------------------------------------------
+%% API Function Definitions
+%% ------------------------------------------------------------------
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Do:
-%% 	Start a new engine
-%% With:
-%% 	Status: the current status of the view
-%% 	Threshold: the threshold to use
-%% 	StatusList: List of 2-tuples containing the Sum of Weights for
-%% 			each Status
+%% 	Start and link to a new weighted_engine
 %% @end
 %%--------------------------------------------------------------------
-start(Status, Threshold, StatusList) ->
-	init({Status, Threshold, StatusList}).
+start_link() ->
+	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Do:
+%% 	Send a synchronous request to the engine
+%% With:
+%% 	Status: current status of the calling view_core
+%% 	Threshold: threshold to use
+%% 	StatusList: list of 2-Tuples
+%% @end
+%%--------------------------------------------------------------------
+process(Status, Threshold, StatusList) ->
+	gen_server:call(?MODULE, {input, Status, Threshold, StatusList}).
 
 %% ------------------------------------------------------------------
-%% Internal Function Definitions
+%% gen_server Function Definitions
 %% ------------------------------------------------------------------
+
+init([]) ->
+	{ok, []}.
 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
 %% Do:
-%%	Call the sorting function on the StatusList
-%%	Call the function to compare the two first results
+%% 	Handle the synchronous calls from view_core
 %% With:
-%% 	Status: the current status of the view
-%% 	Threshold: the threshold to use
-%% 	StatusList: List of 2-tuples containing the Sum of Weights for
-%% 			each Status
+%% 	Status: current status of the calling view_core
+%% 	Threshold: threshold to use
+%% 	StatusList: list of 2-Tuples
 %% @end
 %%--------------------------------------------------------------------
-init({Status, Threshold, StatusList}) ->
+handle_call({input, Status, Threshold, StatusList}, _From, []) ->
 	[First|[Second|_T]] = inverted_insertion_sort(StatusList),
-	compare(Status, Threshold, First, Second).
+	Result = compare(Status, Threshold, First, Second),
+	{reply, Result, []}.
+
+terminate(_Reason, _State) ->
+	ok.
+
+%% ------------------------------------------------------------------
+%% Internal Function Definitions
+%% ------------------------------------------------------------------
 
 %%--------------------------------------------------------------------
 %% @private
