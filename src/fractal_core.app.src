@@ -1,12 +1,13 @@
-{application, fractal,
+{application, fractal_core,
  [
-  {description, "Simple monitoring tool"},
+  {description, ""},
   {vsn, "1"},
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+		  gproc
                  ]},
-  {mod, { fractal_app, []}},
+  {mod, { fractal_core_app, []}},
   {env, []}
  ]}.

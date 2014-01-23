@@ -1,35 +1,32 @@
--module(view).
--define(SUP, view_sup).
--define(RX, view_rx).
+-module(engine_sup).
+-behaviour(supervisor).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
-
--export([start_link/8, notify/2]).
+-export([start_link/0]).
 
 %% ------------------------------------------------------------------
-%% API Function Definitions
+%% Supervisor Function Exports
 %% ------------------------------------------------------------------
+-export([init/1]).
+
+%% ===================================================================
+%% API functions
+%% ===================================================================
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Do:
-%% 	Start and link to a new view
-%% With:
-%% 	ViewName: the name of the new view
-%% 	Lowers: a list of 2-Tuples containing the lower views and
-%% 			weights associated to them
-%% 	DE: the engine to use when dead
-%% 	DT: the threshold to use when dead
-%% 	AE: the engine to use when alive
-%% 	AT: the threshold to use when alive
-%% 	SE: the engine to use when suspicious
-%% 	ST: the threshold to use when suspicious
+%% 	Start and link to a new engine supervisor
 %% @end
 %%--------------------------------------------------------------------
-start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST) ->
-	?SUP:start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+%% ===================================================================
+%% Supervisor callbacks
+%% ===================================================================
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -40,5 +37,6 @@ start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST) ->
 %% 	Status: new status of the calling view
 %% @end
 %%--------------------------------------------------------------------
-notify(From, Status) ->
-	?RX:forward(From, Status).
+init([]) ->
+	Engines = [{weighted_engine, {weighted_engine, start_link, []}, permanent, 5000, worker, [engine_sup]}],
+	{ok, {{one_for_one, 5, 10}, Engines}}.

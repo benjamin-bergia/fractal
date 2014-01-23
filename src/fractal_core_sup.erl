@@ -1,5 +1,5 @@
 
--module(fractal_sup).
+-module(fractal_core_sup).
 
 -behaviour(supervisor).
 
@@ -9,8 +9,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
+-define(VIEW(Name, Lowers), {Name, {view_sup, start_link, [Name, Lowers, weighted_engine, 1, weighted_engine, 1, weighted_engine, 1]}, permanent, 5000, supervisor, [view_sup]}).
 
 %% ===================================================================
 %% API functions
@@ -24,5 +23,10 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, [?CHILD(view_sup, supervisor), ?CHILD(storage_sup, supervisor)]} }.
+	Childs = [{engine_sup, {engine_sup, start_link, []}, permanent, 5000, supervisor, [engine_sup]},
+		  ?VIEW("Host", [{"Memory", 1}, {"Cpu", 1}, {"Disk", 1}]),
+		 ?VIEW("Memory", [{"test", 1}]),
+		 ?VIEW("Cpu", [{"test", 1}]),
+		 ?VIEW("Disk", [{"test", 1}])],
+	{ok, {{one_for_one, 5, 10}, Childs}}.
 
