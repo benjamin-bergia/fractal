@@ -1,6 +1,7 @@
 -module(view).
 -define(SUP, view_sup).
 -define(RX, view_rx).
+-define(STORE, store_rx).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -41,4 +42,5 @@ start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST) ->
 %% @end
 %%--------------------------------------------------------------------
 notify(From, Status) ->
-	?RX:forward(From, Status).
+	?RX:forward(From, Status),
+	?STORE:set_status(From, Status).
