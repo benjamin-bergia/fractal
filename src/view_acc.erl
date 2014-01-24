@@ -44,7 +44,7 @@ start_link(Name, Tid, Lowers) ->
 %% With:
 %% 	Name: the of the receiver
 %% 	Tid: the supervisor ETS table Id
-%% 	From: the name of the source
+%% 	From: the id of the source
 %% 	Status: the new status of the source
 %% @end
 %%--------------------------------------------------------------------
@@ -82,13 +82,13 @@ init({Name, Tid, Lowers}) ->
 %% 	Forward this lists to the core
 %% 	Update the current state
 %% With:
-%% 	ViewName: the name of the source
+%% 	ViewID: the id of the source
 %% 	Status: the status of the source
 %% 	S: the current state
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({status_change, ViewName, Status}, S) ->
-	{DList, AList, SList} = update_lists(ViewName, Status, S#state.d_list, S#state.a_list, S#state.s_list),
+handle_cast({status_change, ViewID, Status}, S) ->
+	{DList, AList, SList} = update_lists(ViewID, Status, S#state.d_list, S#state.a_list, S#state.s_list),
 	view_core:forward(S#state.name, S#state.tid, sum2(DList), sum2(AList), sum2(SList)),
 	{noreply, S#state{d_list=DList, a_list=AList, s_list=SList}}.
 
@@ -108,19 +108,19 @@ terminate(_Reason, _State) ->
 %% 	Call update to update the lists accordingly to the lower view
 %% 		new state
 %% With:
-%% 	ViewName: the name of the lower view
+%% 	ViewID: the id of the lower view
 %% 	Status: the status of the lower view
 %% 	DList: a list of 2-tuples containing the dead views
 %% 	AList: a list of 2-tuples containing the alive views
 %% 	SList: a list of 2-tuples containing the suspicious views
 %% @end
 %%--------------------------------------------------------------------
-update_lists(ViewName, Status, DList, AList, SList) ->
-	Weight = get_weight(ViewName, DList, AList, SList),
-	D = remove(ViewName, DList),
-	A = remove(ViewName, AList),
-	S = remove(ViewName, SList),
-	update(ViewName, Weight, Status, D, A, S).
+update_lists(ViewID, Status, DList, AList, SList) ->
+	Weight = get_weight(ViewID, DList, AList, SList),
+	D = remove(ViewID, DList),
+	A = remove(ViewID, AList),
+	S = remove(ViewID, SList),
+	update(ViewID, Weight, Status, D, A, S).
 	
 %%--------------------------------------------------------------------
 %% @private
@@ -128,12 +128,12 @@ update_lists(ViewName, Status, DList, AList, SList) ->
 %% Do:
 %% 	Remove a lower view from a list
 %% With:
-%% 	ViewName: the name of the view
+%% 	ViewID: the id of the view
 %% 	List: a list of 2-tuples
 %% @end
 %%--------------------------------------------------------------------
-remove(ViewName, List) ->
-	lists:keydelete(ViewName, 1, List).
+remove(ViewID, List) ->
+	lists:keydelete(ViewID, 1, List).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -141,19 +141,19 @@ remove(ViewName, List) ->
 %% Do:
 %% 	Update the lists of lower views according to their new state
 %% With:
-%% 	ViewName: the name of the lower view
+%% 	ViewID: the id of the lower view
 %% 	Weight: the weight of the lower view
 %% 	DList: a list of 2-tuples containing the dead views
 %% 	AList: a list of 2-tuples containing the alive views
 %% 	SList: a list of 2-tuples containing the suspicious views
 %% @end
 %%--------------------------------------------------------------------
-update(ViewName, Weight, dead, DList, AList, SList) ->
-	{append_view(ViewName, Weight, DList), AList, SList};
-update(ViewName, Weight, alive, DList, AList, SList) ->
-	{DList, append_view(ViewName, Weight, AList), SList};
-update(ViewName, Weight, suspicious, DList, AList, SList) ->
-	{DList, AList, append_view(ViewName, Weight, SList)}.
+update(ViewID, Weight, dead, DList, AList, SList) ->
+	{append_view(ViewID, Weight, DList), AList, SList};
+update(ViewID, Weight, alive, DList, AList, SList) ->
+	{DList, append_view(ViewID, Weight, AList), SList};
+update(ViewID, Weight, suspicious, DList, AList, SList) ->
+	{DList, AList, append_view(ViewID, Weight, SList)}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -161,13 +161,13 @@ update(ViewName, Weight, suspicious, DList, AList, SList) ->
 %% Do:
 %% 	Append a view to a list of view
 %% With:
-%% 	ViewName: the name of the view
+%% 	ViewID: the id of the view
 %% 	Weight: the weight of the view
 %% 	List: a list of 2-tuples
 %% @end
 %%--------------------------------------------------------------------
-append_view(ViewName, Weight, List) ->
-	[{ViewName, Weight}|List].
+append_view(ViewID, Weight, List) ->
+	[{ViewID, Weight}|List].
 
 %%--------------------------------------------------------------------
 %% @private
@@ -190,15 +190,15 @@ sum2(TupleList) ->
 %% Do:
 %% 	Return the weight of a given lower view
 %% With:
-%% 	ViewName: the name of the lower view
-%% 	DList: a list of 2-tuples containing view's names and weights
-%% 	AList: a list of 2-tuples containing view's names and weights
-%% 	SList: a list of 2-tuples containing view's names and weights
+%% 	ViewID: the id of the lower view
+%% 	DList: a list of 2-tuples containing view's IDs and weights
+%% 	AList: a list of 2-tuples containing view's IDs and weights
+%% 	SList: a list of 2-tuples containing view's IDs and weights
 %% @end
 %%--------------------------------------------------------------------
-get_weight(ViewName, DList, AList, SList) ->
+get_weight(ViewID, DList, AList, SList) ->
 	List = lists:append([DList, AList, SList]),
-	{ViewName, Weight} = lists:keyfind(ViewName, 1, List),
+	{ViewID, Weight} = lists:keyfind(ViewID, 1, List),
 	Weight.
 
 -ifdef(TEST).
