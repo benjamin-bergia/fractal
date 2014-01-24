@@ -18,7 +18,7 @@
 %% Do:
 %% 	Start and link to a new view
 %% With:
-%% 	ViewName: the name of the new view
+%% 	ViewID: the id of the new view
 %% 	Lowers: a list of 2-Tuples containing the lower views and
 %% 			weights associated to them
 %% 	DE: the engine to use when dead
@@ -29,15 +29,15 @@
 %% 	ST: the threshold to use when suspicious
 %% @end
 %%--------------------------------------------------------------------
-start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST) ->
-	?SUP:start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST).
+start_link(ViewID, Lowers, DE, DT, AE, AT, SE, ST) ->
+	?SUP:start_link(ViewID, Lowers, DE, DT, AE, AT, SE, ST).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Do:
 %% 	Notify the View from a Status change (called by a lower view)
 %% With:
-%% 	From: name of calling view
+%% 	From: id of calling view
 %% 	Status: new status of the calling view
 %% @end
 %%--------------------------------------------------------------------
