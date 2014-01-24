@@ -5,7 +5,7 @@
 %% State record
 %% ------------------------------------------------------------------
 
--record(state, {name, tid, view_name}).
+-record(state, {tid, view_name}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -65,7 +65,7 @@ forward(Tid, Status) ->
 %%--------------------------------------------------------------------
 init({Tid, ViewName}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
-	{ok, #state{name=?MODULE, tid=Tid, view_name=ViewName}}.
+	{ok, #state{tid=Tid, view_name=ViewName}}.
 
 %%--------------------------------------------------------------------
 %% @private
