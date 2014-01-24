@@ -4,7 +4,7 @@
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
--export([start_link/8,
+-export([start_link/10,
 	 set_pid/3, set_pid/4,
 	 get_pid/2, get_pid/3]).
 
@@ -22,19 +22,23 @@
 %% Do:
 %% 	Start and link to a new view supervisor
 %% With:
-%% 	ViewName: the name of the new view
-%% 	Lowers: a list of 2-Tuples containing the lower views and
-%% 			weights associated to them
+%% 	ViewID: the id of the new view
 %% 	DE: the engine to use when dead
 %% 	DT: the threshold to use when dead
+%% 	DL: a list of 2-Tuples containing the lower views and
+%% 			weights associated to them
 %% 	AE: the engine to use when alive
 %% 	AT: the threshold to use when alive
+%% 	AL: a list of 2-Tuples containing the lower views and
+%% 			weights associated to them
 %% 	SE: the engine to use when suspicious
 %% 	ST: the threshold to use when suspicious
+%% 	SL: a list of 2-Tuples containing the lower views and
+%% 			weights associated to them
 %% @end
 %%--------------------------------------------------------------------
-start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST) ->
-    supervisor:start_link(?MODULE, {ViewName, Lowers, DE, DT, AE, AT, SE, ST}).
+start_link(ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL) ->
+    supervisor:start_link(?MODULE, {ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL}).
 
 %% ===================================================================
 %% Supervisor callbacks
@@ -45,21 +49,23 @@ start_link(ViewName, Lowers, DE, DT, AE, AT, SE, ST) ->
 %% Do:
 %% 	Notify the View from a Status change (called by a lower view)
 %% With:
-%% 	From: name of calling view
+%% 	From: id of calling view
 %% 	Status: new status of the calling view
 %% @end
 %%--------------------------------------------------------------------
-init({ViewName, Lowers, DE, DT, AE, AT, SE, ST}) ->
+init({ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL}) ->
 	Tid = create_table(),
-	{Subs, _Weights} = lists:unzip(Lowers),
-	View = [{view_tx,	{view_tx,	start_link, [Tid, ViewName]},			permanent, 5000, worker, [view_tx]},
+	{DS, _Weights} = lists:unzip(DL), % Generate the susbscription list for the dead state
+	{AS, _Weights} = lists:unzip(AL), % Generate the susbscription list for the alive state
+	{SS, _Weights} = lists:unzip(SL), % Generate the susbscription list for the suspicious state
+	View = [{view_tx,	{view_tx,	start_link, [Tid, ViewID]},			permanent, 5000, worker, [view_tx]},
 		{view_core, 	{view_core,	start_link, [Tid, DE, DT, AE, AT, SE, ST]},	permanent, 5000, worker, [view_core]},
-		{dead_acc,	{view_acc,	start_link, [dead, Tid, Lowers]},		permanent, 5000, worker, [view_acc]},
-		{dead_rx,	{view_rx,	start_link, [dead, Tid, Subs]},			permanent, 5000, worker, [view_rx]},
-		{alive_acc,	{view_acc,	start_link, [alive, Tid, Lowers]},		permanent, 5000, worker, [view_acc]},
-		{alive_rx,	{view_rx,	start_link, [alive, Tid, Subs]},		permanent, 5000, worker, [view_rx]},
-		{suspicious_acc,{view_acc,	start_link, [suspicious, Tid, Lowers]},		permanent, 5000, worker, [view_acc]},
-		{suspicious_rx, {view_rx,	start_link, [suspicious, Tid, Subs]},		permanent, 5000, worker, [view_rx]}],
+		{dead_acc,	{view_acc,	start_link, [dead, Tid, DL]},			permanent, 5000, worker, [view_acc]},
+		{dead_rx,	{view_rx,	start_link, [dead, Tid, DS]},			permanent, 5000, worker, [view_rx]},
+		{alive_acc,	{view_acc,	start_link, [alive, Tid, AL]},			permanent, 5000, worker, [view_acc]},
+		{alive_rx,	{view_rx,	start_link, [alive, Tid, AS]},			permanent, 5000, worker, [view_rx]},
+		{suspicious_acc,{view_acc,	start_link, [suspicious, Tid, SL]},		permanent, 5000, worker, [view_acc]},
+		{suspicious_rx, {view_rx,	start_link, [suspicious, Tid, SS]},		permanent, 5000, worker, [view_rx]}],
 	{ok, {{one_for_one, 5, 10}, View}}.
 
 %%--------------------------------------------------------------------
