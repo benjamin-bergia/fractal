@@ -1,5 +1,5 @@
 
--module(fractal_core_sup).
+-module(fractal_store_sup).
 
 -behaviour(supervisor).
 
@@ -8,6 +8,9 @@
 
 %% Supervisor callbacks
 -export([init/1]).
+
+%% Helper macro for declaring children of supervisor
+-define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
@@ -21,6 +24,5 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	Childs = [{view_sup_sup, {view_sup_sup, start_link, []}, permanent, 2000, supervisor, [view_sup_sup]},
-		 {fractal_store_sup, {fractal_store_sup, start_link, []}, permanent, 2000, supervisor, [fractal_store_sup]}],
-	{ok, {{one_for_one, 5, 10}, Childs}}.
+    {ok, { {one_for_one, 5, 10}, [?CHILD(store_rx, worker)]} }.
+

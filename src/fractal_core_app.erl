@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    fractal_core_sup:start_link().
+	fractal_core_sup:start_link().
 
 stop(_State) ->
-    ok.
+	ok.
