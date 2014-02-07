@@ -37,7 +37,7 @@ init([]) ->
 	{ok, []}.
 
 handle_cast({set_status, ViewID, Status}, S) ->
-	write(#view_status{view=ViewID, status=Status}),
+	write(#view_status{view_id=ViewID, status=Status}),
 	{noreply, S}.
 
 terminate(_Reason, _State) ->
