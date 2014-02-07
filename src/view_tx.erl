@@ -5,7 +5,7 @@
 %% State record
 %% ------------------------------------------------------------------
 
--record(state, {name, tid, view_name}).
+-record(state, {tid, view_id}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -32,8 +32,8 @@
 %% 	Viewname: the name of thee view containing this transmitter
 %% @end
 %%--------------------------------------------------------------------
-start_link(Tid, ViewName) ->
-	gen_server:start_link(?MODULE, {Tid, ViewName}, []).
+start_link(Tid, ViewID) ->
+	gen_server:start_link(?MODULE, {Tid, ViewID}, []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -63,9 +63,9 @@ forward(Tid, Status) ->
 %% 	Viewname: the name of thee view containing this transmitter
 %% @end
 %%--------------------------------------------------------------------
-init({Tid, ViewName}) ->
+init({Tid, ViewID}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
-	{ok, #state{name=?MODULE, tid=Tid, view_name=ViewName}}.
+	{ok, #state{tid=Tid, view_id=ViewID}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -78,7 +78,7 @@ init({Tid, ViewName}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({status_change, Status}, S) ->
-	view:notify(S#state.view_name, Status),
+	view:notify(S#state.view_id, Status),
 	{noreply, S}.
 
 terminate(_Reason, _State) ->
