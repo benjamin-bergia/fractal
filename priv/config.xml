@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<view id='1'>
+	<name>first view</name>
+	<dead>
+		<engine>weighted_engine</engine>
+		<threshold>2</threshold>
+		<lowers>
+			<lower>
+				<id>2</id>
+				<weight>5</weight>
+			</lower>
+			<lower>
+				<id>3</id>
+				<weight>1</weight>
+			</lower>
+		</lowers>
+	</dead>
+	<alive>
+		<engine>weighted_engine</engine>
+		<threshold>2</threshold>
+		<lowers>
+			<lower>
+				<id>2</id>
+				<weight>5</weight>
+			</lower>
+			<lower>
+				<id>3</id>
+				<weight>1</weight>
+			</lower>
+		</lowers>
+	</alive>
+	<suspicious>
+		<engine>weighted_engine</engine>
+		<threshold>2</threshold>
+		<lowers>
+			<lower>
+				<id>2</id>
+				<weight>5</weight>
+			</lower>
+			<lower>
+				<id>3</id>
+				<weight>1</weight>
+			</lower>
+		</lowers>
+	</suspicious>
+</view>

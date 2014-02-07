@@ -26,7 +26,7 @@ init([]) ->
 	Fun = fun(Options, Acc) ->
 			      [?VIEW(get_viewid(Options), Options)|Acc]
 			end,
-	Childs = lists:foldr(Fun, [], fractal_conf_l3_parser:parse("multiView.hrl")),
+	Childs = lists:foldr(Fun, [], fractal_conf_l3_parser:parse("priv/multiView.hrl")),
 	{ok, {{one_for_one, 5, 10}, Childs}}.
 
 get_viewid(Options) ->

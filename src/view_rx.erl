@@ -51,7 +51,8 @@ forward(From, Status) ->
 			gen_server:cast(Pid, {status_change, From, Status}),
 			true
 		end,
-	lists:all(Send, Pids).
+	true = lists:all(Send, Pids),
+	ok.
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
