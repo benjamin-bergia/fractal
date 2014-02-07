@@ -1,4 +1,4 @@
--module(fractal_conf_l3_parser).
+-module(l3_conf_parser).
 -export([parse/1]).
 
 parse(FilePath) ->

@@ -1,5 +1,4 @@
-
--module(fractal_store_sup).
+-module(store_sup).
 
 -behaviour(supervisor).
 
