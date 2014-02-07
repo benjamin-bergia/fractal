@@ -53,6 +53,7 @@ start_link(ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL) ->
 %% 	Status: new status of the calling view
 %% @end
 %%--------------------------------------------------------------------
+
 init({ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL}) ->
 	Tid = create_table(),
 	{DS, _Weights} = lists:unzip(DL), % Generate the susbscription list for the dead state

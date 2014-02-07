@@ -42,5 +42,5 @@ start_link(ViewID, Lowers, DE, DT, AE, AT, SE, ST) ->
 %% @end
 %%--------------------------------------------------------------------
 notify(From, Status) ->
-	?RX:forward(From, Status),
-	?STORE:set_status(From, Status).
+	?STORE:set_status(From, Status),
+	?RX:forward(From, Status).
