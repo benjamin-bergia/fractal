@@ -1,4 +1,4 @@
--module(fractal_core_app).
+-module(fractal_app).
 
 -behaviour(application).
 
@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-	fractal_core_sup:start_link().
+	fractal_sup:start_link().
 
 stop(_State) ->
 	ok.

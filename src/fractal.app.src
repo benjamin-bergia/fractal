@@ -1,4 +1,4 @@
-{application, fractal_core,
+{application, fractal,
  [
   {description, ""},
   {vsn, "1"},
@@ -8,6 +8,6 @@
                   stdlib,
 		  gproc
                  ]},
-  {mod, { fractal_core_app, []}},
+  {mod, { fractal_app, []}},
   {env, []}
  ]}.
