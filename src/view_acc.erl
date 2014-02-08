@@ -1,6 +1,10 @@
 -module(view_acc).
 -behaviour(gen_server).
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
 %% ------------------------------------------------------------------
 %% State record
 %% ------------------------------------------------------------------
@@ -184,6 +188,10 @@ sum2([]) ->
 sum2(TupleList) ->
 	{_First, Second} = lists:unzip(TupleList),
 	lists:sum(Second).
+sum2_test_() ->
+	[?_assertEqual(40, sum2([{a, 2}, {"test", 4}, {2, 34}])),
+	 ?_assertEqual(0, sum2([{a, 0}, {"test", 0}])),
+	 ?_assertEqual(0, sum2([]))].
 
 %%--------------------------------------------------------------------
 %% @private
@@ -201,7 +209,5 @@ get_weight(ViewID, DList, AList, SList) ->
 	List = lists:append([DList, AList, SList]),
 	{ViewID, Weight} = lists:keyfind(ViewID, 1, List),
 	Weight.
-
--ifdef(TEST).
--include("test/view_acc_tests.hrl").
--endif.
+get_weight_test_() ->
+	[?_assertEqual(Expected, get_weight(ViewID, DList, AList, SList))].
