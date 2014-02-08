@@ -21,5 +21,6 @@ start_link() ->
 
 init([]) ->
 	Childs = [{tree_sup, {tree_sup, start_link, []}, permanent, 2000, supervisor, [tree_sup]},
-		 {store_sup, {store_sup, start_link, []}, permanent, 2000, supervisor, [store_sup]}],
+		 {store_sup, {store_sup, start_link, []}, permanent, 2000, supervisor, [store_sup]},
+		 {engine_sup, {engine_sup, start_link, []}, permanent, 2000, supervisor, [engine_sup]}],
 	{ok, {{one_for_one, 5, 10}, Childs}}.

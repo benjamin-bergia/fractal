@@ -52,7 +52,7 @@ forward(From, Status) ->
 			true
 		end,
 	true = lists:all(Send, Pids),
-	ok.
+	{ok, Pids}.
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -88,7 +88,7 @@ init({Name, Tid, Subscriptions}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({status_change, View, Status}, S) ->
-	view_acc:forward(S#state.name, S#state.tid, View, Status),
+	ok = view_acc:forward(S#state.name, S#state.tid, View, Status),
 	{noreply, S}.
 
 terminate(_Reason, _State) ->
