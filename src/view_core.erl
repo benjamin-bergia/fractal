@@ -58,7 +58,8 @@ start_link(Tid, DE, DT, AE, AT, SE, ST) ->
 forward(From, Tid, DSum, ASum, SSum) ->
 	To = view_sup:get_pid(Tid, ?MODULE),
 	Msg = {From, [{dead, DSum}, {alive, ASum}, {suspicious, SSum}]},
-	gen_fsm:send_event(To, Msg).
+	gen_fsm:send_event(To, Msg),
+	ok.
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
@@ -105,7 +106,7 @@ init({Tid, DE, DT, AE, AT, SE, ST}) ->
 %%--------------------------------------------------------------------
 dead({dead, Data}, S) ->
 	Status = engine:process(S#state.dead_ngn, dead, S#state.dead_thd, Data),
-	view_tx:forward(S#state.tid, Status),
+	ok = view_tx:forward(S#state.tid, Status),
 	{next_state, Status, S};
 dead(_Event, S) ->
 	{next_state, dead, S}.
@@ -127,7 +128,7 @@ dead(_Event, S) ->
 %%--------------------------------------------------------------------
 alive({alive, Data}, S) ->
 	Status = engine:process(S#state.alive_ngn, alive, S#state.alive_thd, Data),
-	view_tx:forward(S#state.tid, Status),
+	ok = view_tx:forward(S#state.tid, Status),
 	{next_state, Status, S};
 alive(_Event, S) ->
 	{next_state, alive, S}.
@@ -149,7 +150,7 @@ alive(_Event, S) ->
 %%--------------------------------------------------------------------
 suspicious({suspicious, Data}, S) ->
 	Status = engine:process(S#state.suspicious_ngn, suspicious, S#state.suspicious_thd, Data),
-	view_tx:forward(S#state.tid, Status),
+	ok = view_tx:forward(S#state.tid, Status),
 	{next_state, Status, S};
 suspicious(_Event, S) ->
 	{next_state, suspicious, S}.

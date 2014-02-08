@@ -50,7 +50,8 @@ start_link(Name, Tid, Lowers) ->
 %%--------------------------------------------------------------------
 forward(Name, Tid, From, Status) ->
 	Acc = view_sup:get_pid(Tid, ?MODULE, Name),
-	gen_server:cast(Acc, {status_change, From, Status}).
+	gen_server:cast(Acc, {status_change, From, Status}),
+	ok.
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -89,7 +90,7 @@ init({Name, Tid, Lowers}) ->
 %%--------------------------------------------------------------------
 handle_cast({status_change, ViewID, Status}, S) ->
 	{DList, AList, SList} = update_lists(ViewID, Status, S#state.d_list, S#state.a_list, S#state.s_list),
-	view_core:forward(S#state.name, S#state.tid, sum2(DList), sum2(AList), sum2(SList)),
+	ok = view_core:forward(S#state.name, S#state.tid, sum2(DList), sum2(AList), sum2(SList)),
 	{noreply, S#state{d_list=DList, a_list=AList, s_list=SList}}.
 
 terminate(_Reason, _State) ->

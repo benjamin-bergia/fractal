@@ -88,7 +88,7 @@ init({Name, Tid, Subscriptions}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({status_change, View, Status}, S) ->
-	{ok, _Pids} = view_acc:forward(S#state.name, S#state.tid, View, Status),
+	ok = view_acc:forward(S#state.name, S#state.tid, View, Status),
 	{noreply, S}.
 
 terminate(_Reason, _State) ->

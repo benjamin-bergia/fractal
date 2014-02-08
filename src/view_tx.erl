@@ -46,7 +46,8 @@ start_link(Tid, ViewID) ->
 %%--------------------------------------------------------------------
 forward(Tid, Status) ->
 	TX = view_sup:get_pid(Tid, ?MODULE),
-	gen_server:cast(TX, {status_change, Status}).
+	gen_server:cast(TX, {status_change, Status}),
+	ok.
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -78,7 +79,7 @@ init({Tid, ViewID}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({status_change, Status}, S) ->
-	view:notify(S#state.view_id, Status),
+	{ok, _Pids} = view:notify(S#state.view_id, Status),
 	{noreply, S}.
 
 terminate(_Reason, _State) ->
