@@ -56,13 +56,12 @@ start_link(ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL) ->
 
 init({ViewID, E, T, L}) ->
 	Tid = create_table(),
-	{S, _Weights} = lists:unzip(DL), % Generate the susbscription list
+	{S, _Weights} = lists:unzip(L), % Generate the susbscription list
 	View = [{view_tx,	{view_tx,	start_link, [Tid, ViewID]},	permanent, 5000, worker, [view_tx]},
 		{view_core, 	{view_core,	start_link, [Tid, E, T]},	permanent, 5000, worker, [view_core]},
 		{all_acc,	{view_acc,	start_link, [all, Tid, L]},	permanent, 5000, worker, [view_acc]},
 		{all_rx, 	{view_rx,	start_link, [all, Tid, S]},	permanent, 5000, worker, [view_rx]}],
-	{ok, {{one_for_one, 5, 10}, View}}.
-
+	{ok, {{one_for_one, 5, 10}, View}};
 init({ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL}) ->
 	Tid = create_table(),
 	{DS, _Weights} = lists:unzip(DL), % Generate the susbscription list for the dead state
