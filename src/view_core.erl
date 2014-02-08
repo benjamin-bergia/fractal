@@ -6,6 +6,7 @@
 %% ------------------------------------------------------------------
 
 -record(state, {tid,
+		all_ngn, all_thd,  
 		dead_ngn, dead_thd,
 		alive_ngn, alive_thd,
 		suspicious_ngn, suspicious_thd}).
@@ -73,6 +74,8 @@ forward(From, Tid, DSum, ASum, SSum) ->
 %%	Initialize the State
 %% With:
 %% 	Tid: Supervisor ETS table Id
+%% 	E:  Engine used for all the status
+%% 	T:  Threshold used for all the status
 %% 	DE: Engine used when dead
 %% 	DT: Threshold used when dead
 %% 	AE: Engine used when alive
@@ -81,6 +84,11 @@ forward(From, Tid, DSum, ASum, SSum) ->
 %% 	ST: Threshold used when suspicious
 %% @end
 %%--------------------------------------------------------------------
+init({Tid, E, T}) ->
+	view_sup:set_pid(Tid, ?MODULE, self()),
+	S = #state{tid=Tid,
+		   all_ngn=E, all_thd=T},
+	{ok, dead, S};
 init({Tid, DE, DT, AE, AT, SE, ST}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
 	S = #state{tid=Tid,
@@ -94,10 +102,9 @@ init({Tid, DE, DT, AE, AT, SE, ST}) ->
 %% @doc
 %% Do:
 %% 	Handle the asynchronous events when dead and coming
-%% 		from the dead accumulator only
-%% 	Get a new Status from the engine
-%% 	Forward the new status to view_tx
+%% 		from the dead or "all" accumulator only
 %% With:
+%% 	S: The current state of the core
 %% 	Dead: {dead, Sum} with Weights Sum of all the dead views
 %% 	Alive: {alive, Sum} with Weights Sum of all the alive views
 %% 	Suspicious: {suspicious, Sum} with Weights Sum of all the 
@@ -105,8 +112,10 @@ init({Tid, DE, DT, AE, AT, SE, ST}) ->
 %% @end
 %%--------------------------------------------------------------------
 dead({dead, Data}, S) ->
-	Status = engine:process(S#state.dead_ngn, dead, S#state.dead_thd, Data),
-	ok = view_tx:forward(S#state.tid, Status),
+	Status = routine(S#state.tid, S#state.dead_ngn, dead, S#state.dead_thd, Data),
+	{next_state, Status, S};
+dead({all, Data}, S) ->
+	Status = routine(S#state.tid, S#state.all_ngn, dead, S#state.all_thd, Data),
 	{next_state, Status, S};
 dead(_Event, S) ->
 	{next_state, dead, S}.
@@ -127,8 +136,10 @@ dead(_Event, S) ->
 %% @end
 %%--------------------------------------------------------------------
 alive({alive, Data}, S) ->
-	Status = engine:process(S#state.alive_ngn, alive, S#state.alive_thd, Data),
-	ok = view_tx:forward(S#state.tid, Status),
+	Status = routine(S#state.tid, S#state.alive_ngn, alive, S#state.alive_thd, Data),
+	{next_state, Status, S};
+alive({all, Data}, S) ->
+	Status = routine(S#state.tid, S#state.all_ngn, alive, S#state.all_thd, Data),
 	{next_state, Status, S};
 alive(_Event, S) ->
 	{next_state, alive, S}.
@@ -149,14 +160,41 @@ alive(_Event, S) ->
 %% @end
 %%--------------------------------------------------------------------
 suspicious({suspicious, Data}, S) ->
-	Status = engine:process(S#state.suspicious_ngn, suspicious, S#state.suspicious_thd, Data),
-	ok = view_tx:forward(S#state.tid, Status),
+	Status = routine(S#state.tid, S#state.suspicious_ngn, suspicious, S#state.suspicious_thd, Data),
+	{next_state, Status, S};
+suspicious({all, Data}, S) ->
+	Status = routine(S#state.tid, S#state.all_ngn, suspicious, S#state.all_thd, Data),
 	{next_state, Status, S};
 suspicious(_Event, S) ->
 	{next_state, suspicious, S}.
 
 terminate(_Reason, _Status, _State) ->
 	ok.
+
+
+%% ------------------------------------------------------------------
+%% Internal Function Definitions
+%% ------------------------------------------------------------------
+
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Get a new Status from the engine
+%% 	Forward the new status to view_tx
+%% With:
+%% 	Tid: Supervisor ETS table Id
+%% 	Engine:  The engine to use to generate the new status
+%% 	Threshold:  The threshold to use
+%% 	Status: The current core status
+%% 	Data: Data received from the accumulator
+%% @end
+%%--------------------------------------------------------------------
+routine(Tid, Engine, Status, Threshold, Data) ->
+	NewStatus = engine:process(Engine, Status, Threshold, Data),
+	ok = view_tx:forward(Tid, NewStatus),
+	NewStatus.
 
 %% Include the unit tests 
 -ifdef(TEST).
