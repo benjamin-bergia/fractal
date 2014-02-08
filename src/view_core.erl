@@ -15,7 +15,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/7, forward/5]).
+-export([start_link/7, start_link/3, forward/5]).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Exports
@@ -33,6 +33,8 @@
 %% 	Start and link a new core
 %% With:
 %% 	Tid: Supervisor ETS table Id
+%% 	E:  Engine used with the "all" accumulator
+%% 	T:  Threshold used with the "all" accumulator
 %% 	DE: Engine used when dead
 %% 	DT: Threshold used when dead
 %% 	AE: Engine used when alive
@@ -43,6 +45,9 @@
 %%--------------------------------------------------------------------
 start_link(Tid, DE, DT, AE, AT, SE, ST) ->
 	gen_fsm:start_link(?MODULE, {Tid, DE, DT, AE, AT, SE, ST}, []).
+
+start_link(Tid, E, T) ->
+	gen_fsm:start_link(?MODULE, {Tid, E, T}, []).
 
 %%--------------------------------------------------------------------
 %% @doc
