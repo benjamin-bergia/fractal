@@ -10,7 +10,7 @@ get_conf(FilePath) ->
 
 break({view, {id, ViewID}, {name, _ViewName}, Status}) ->
 	{E, T, L} = get_status(Status),
-	[ViewID, E, T, L, E, T, L, E, T, L];
+	[ViewID, E, T, L];
 break({view, {id, ViewID}, {name, _ViewName}, StatusA, StatusB, StatusC}) ->
 	{DE, DT, DL} = get_status(StatusA),
 	{AE, AT, AL} = get_status(StatusB),
