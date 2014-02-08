@@ -4,7 +4,7 @@
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
--export([start_link/10,
+-export([start_link/10, start_link/4,
 	 set_pid/3, set_pid/4,
 	 get_pid/2, get_pid/3]).
 
@@ -23,6 +23,10 @@
 %% 	Start and link to a new view supervisor
 %% With:
 %% 	ViewID: the id of the new view
+%% 	E: the engine for all the status
+%% 	T: the threshold for all the status
+%% 	L: a list of 2-Tuples containing the lower views and
+%% 			weights associated to them
 %% 	DE: the engine to use when dead
 %% 	DT: the threshold to use when dead
 %% 	DL: a list of 2-Tuples containing the lower views and
@@ -39,6 +43,9 @@
 %%--------------------------------------------------------------------
 start_link(ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL) ->
     supervisor:start_link(?MODULE, {ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL}).
+
+start_link(ViewID, E, T, L) ->
+    supervisor:start_link(?MODULE, {ViewID, E, T, L}).
 
 %% ===================================================================
 %% Supervisor callbacks
