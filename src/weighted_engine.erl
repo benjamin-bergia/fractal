@@ -1,7 +1,8 @@
 -module(weighted_engine).
 -behaviour(gen_server).
-
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -88,6 +89,7 @@ rev_insert(Acc={_, AccSecond}, List=[{_, Second}|_]) when AccSecond >= Second ->
 	[Acc|List];
 rev_insert(Acc,[H|T]) ->
 	[H|rev_insert(Acc, T)].
+-ifdef(TEST).
 rev_sort2_test_() ->
 	Unsorted = [{e, 5}, {c, 3},
 		    {b ,2}, {f, 5},
@@ -96,7 +98,7 @@ rev_sort2_test_() ->
 		  {d ,4}, {c, 3},
 		  {b, 2}, {a, 1}],
 	?_assertEqual(Sorted, rev_sort2(Unsorted)).
-
+-endif.
 
 
 %%--------------------------------------------------------------------
@@ -122,7 +124,9 @@ compare(_Status, Threshold, {StatusA, Sum}, _) when Sum >= Threshold ->
 	StatusA;
 compare(Status, _, _, _) ->
 	Status.
+-ifdef(TEST).
 compare_test_() ->
 	[?_assertEqual(dead, compare(dead, 5, {alive, 1}, {dead, 0})),
 	 ?_assertEqual(alive, compare(dead, 2, {alive, 5}, {dead, 4})),
 	 ?_assertEqual(suspicious, compare(dead, 2, {alive, 4}, {dead, 4}))].
+-endif.

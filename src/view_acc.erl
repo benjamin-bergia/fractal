@@ -1,7 +1,9 @@
 -module(view_acc).
 -behaviour(gen_server).
 
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% ------------------------------------------------------------------
 %% State record
@@ -124,6 +126,7 @@ update_lists(ViewID, Status, DList, AList, SList) ->
 	A = remove(ViewID, AList),
 	S = remove(ViewID, SList),
 	update(ViewID, Weight, Status, D, A, S).
+-ifdef(TEST).
 update_lists_test_() ->
 	LowerID = 42,
 	Lower = {LowerID, 1},
@@ -140,6 +143,7 @@ update_lists_test_() ->
 		       update_lists(LowerID, alive, [Dum], [Dum], [Lower, Dum])),
 	 ?_assertEqual({[Dum], [Dum], [Lower, Dum]},
 		       update_lists(LowerID, suspicious, [Dum, Lower], [Dum], [Dum]))].
+-endif.
 	
 %%--------------------------------------------------------------------
 %% @private
@@ -153,8 +157,10 @@ update_lists_test_() ->
 %%--------------------------------------------------------------------
 remove(ViewID, List) ->
 	lists:keydelete(ViewID, 1, List).
+-ifdef(TEST).
 remove_test_() ->
 	[?_assertEqual([], remove(1, [{1, 2}]))].
+-endif.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -175,10 +181,12 @@ update(ViewID, Weight, alive, DList, AList, SList) ->
 	{DList, append_view(ViewID, Weight, AList), SList};
 update(ViewID, Weight, suspicious, DList, AList, SList) ->
 	{DList, AList, append_view(ViewID, Weight, SList)}.
+-ifdef(TEST).
 update_test_() ->
 	[?_assertEqual({[{42, 0}], [], []}, update(42, 0, dead, [], [], [])),
 	 ?_assertEqual({[], [{42, 0}], []}, update(42, 0, alive, [], [], [])),
 	 ?_assertEqual({[], [], [{42, 0}]}, update(42, 0, suspicious, [], [], []))].
+-endif.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -193,9 +201,11 @@ update_test_() ->
 %%--------------------------------------------------------------------
 append_view(ViewID, Weight, List) ->
 	[{ViewID, Weight}|List].
+-ifdef(TEST).
 append_view_test_() ->
 	[?_assertEqual([{1, 2}], append_view(1, 2, [])),
 	 ?_assertEqual([{1, 2}, {3, 4}], append_view(1, 2, [{3, 4}]))].
+-endif.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -211,10 +221,12 @@ sum2([]) ->
 sum2(TupleList) ->
 	{_First, Second} = lists:unzip(TupleList),
 	lists:sum(Second).
+-ifdef(TEST).
 sum2_test_() ->
 	[?_assertEqual(40, sum2([{a, 2}, {"test", 4}, {2, 34}])),
 	 ?_assertEqual(0, sum2([{a, 0}, {"test", 0}])),
 	 ?_assertEqual(0, sum2([]))].
+-endif.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -232,6 +244,7 @@ get_weight(ViewID, DList, AList, SList) ->
 	List = lists:append([DList, AList, SList]),
 	{ViewID, Weight} = lists:keyfind(ViewID, 1, List),
 	Weight.
+-ifdef(TEST).
 get_weight_test_() ->
 	ViewID = 2,
 	Expected = 5,
@@ -239,3 +252,4 @@ get_weight_test_() ->
 	AList = [],
 	SList = [{true, false}],
 	?_assertEqual(Expected, get_weight(ViewID, DList, AList, SList)).
+-endif.
