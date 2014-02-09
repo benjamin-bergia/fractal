@@ -1,9 +1,7 @@
 -module(view_acc).
 -behaviour(gen_server).
 
--ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--endif.
 
 %% ------------------------------------------------------------------
 %% State record
@@ -126,6 +124,22 @@ update_lists(ViewID, Status, DList, AList, SList) ->
 	A = remove(ViewID, AList),
 	S = remove(ViewID, SList),
 	update(ViewID, Weight, Status, D, A, S).
+update_lists_test_() ->
+	LowerID = 42,
+	Lower = {LowerID, 1},
+	Dum = {1, 1},
+	[?_assertEqual({[Lower], [], []},
+		       update_lists(LowerID, dead, [], [], [Lower])),
+	 ?_assertEqual({[], [Lower], []},
+		       update_lists(LowerID, alive, [Lower], [], [])),
+	 ?_assertEqual({[], [], [Lower]},
+		       update_lists(LowerID, suspicious, [], [Lower], [])),
+	 ?_assertEqual({[Lower, Dum], [Dum], [Dum]},
+		       update_lists(LowerID, dead, [Dum], [Dum, Lower], [Dum])),
+	 ?_assertEqual({[Dum], [Lower, Dum], [Dum]},
+		       update_lists(LowerID, alive, [Dum], [Dum], [Lower, Dum])),
+	 ?_assertEqual({[Dum], [Dum], [Lower, Dum]},
+		       update_lists(LowerID, suspicious, [Dum, Lower], [Dum], [Dum]))].
 	
 %%--------------------------------------------------------------------
 %% @private
@@ -139,6 +153,8 @@ update_lists(ViewID, Status, DList, AList, SList) ->
 %%--------------------------------------------------------------------
 remove(ViewID, List) ->
 	lists:keydelete(ViewID, 1, List).
+remove_test_() ->
+	[?_assertEqual([], remove(1, [{1, 2}]))].
 
 %%--------------------------------------------------------------------
 %% @private
@@ -159,6 +175,10 @@ update(ViewID, Weight, alive, DList, AList, SList) ->
 	{DList, append_view(ViewID, Weight, AList), SList};
 update(ViewID, Weight, suspicious, DList, AList, SList) ->
 	{DList, AList, append_view(ViewID, Weight, SList)}.
+update_test_() ->
+	[?_assertEqual({[{42, 0}], [], []}, update(42, 0, dead, [], [], [])),
+	 ?_assertEqual({[], [{42, 0}], []}, update(42, 0, alive, [], [], [])),
+	 ?_assertEqual({[], [], [{42, 0}]}, update(42, 0, suspicious, [], [], []))].
 
 %%--------------------------------------------------------------------
 %% @private
@@ -173,6 +193,9 @@ update(ViewID, Weight, suspicious, DList, AList, SList) ->
 %%--------------------------------------------------------------------
 append_view(ViewID, Weight, List) ->
 	[{ViewID, Weight}|List].
+append_view_test_() ->
+	[?_assertEqual([{1, 2}], append_view(1, 2, [])),
+	 ?_assertEqual([{1, 2}, {3, 4}], append_view(1, 2, [{3, 4}]))].
 
 %%--------------------------------------------------------------------
 %% @private
@@ -210,4 +233,9 @@ get_weight(ViewID, DList, AList, SList) ->
 	{ViewID, Weight} = lists:keyfind(ViewID, 1, List),
 	Weight.
 get_weight_test_() ->
-	[?_assertEqual(Expected, get_weight(ViewID, DList, AList, SList))].
+	ViewID = 2,
+	Expected = 5,
+	DList = [{1, 2},{"hey", 2},{ViewID, Expected},{true, false}],
+	AList = [],
+	SList = [{true, false}],
+	?_assertEqual(Expected, get_weight(ViewID, DList, AList, SList)).
