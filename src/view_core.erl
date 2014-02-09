@@ -200,8 +200,3 @@ routine(Tid, Engine, Status, Threshold, Data) ->
 	NewStatus = engine:process(Engine, Status, Threshold, Data),
 	ok = view_tx:forward(Tid, NewStatus),
 	NewStatus.
-
-%% Include the unit tests 
--ifdef(TEST).
--include("test/view_core_tests.hrl").
--endif.
