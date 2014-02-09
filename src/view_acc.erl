@@ -131,18 +131,24 @@ update_lists_test_() ->
 	LowerID = 42,
 	Lower = {LowerID, 1},
 	Dum = {1, 1},
-	[?_assertEqual({[Lower], [], []},
-		       update_lists(LowerID, dead, [], [], [Lower])),
-	 ?_assertEqual({[], [Lower], []},
-		       update_lists(LowerID, alive, [Lower], [], [])),
-	 ?_assertEqual({[], [], [Lower]},
-		       update_lists(LowerID, suspicious, [], [Lower], [])),
-	 ?_assertEqual({[Lower, Dum], [Dum], [Dum]},
-		       update_lists(LowerID, dead, [Dum], [Dum, Lower], [Dum])),
-	 ?_assertEqual({[Dum], [Lower, Dum], [Dum]},
-		       update_lists(LowerID, alive, [Dum], [Dum], [Lower, Dum])),
-	 ?_assertEqual({[Dum], [Dum], [Lower, Dum]},
-		       update_lists(LowerID, suspicious, [Dum, Lower], [Dum], [Dum]))].
+	[{"dead with empty lists",
+	  	?_assertEqual({[Lower], [], []},
+		       update_lists(LowerID, dead, [], [], [Lower]))},
+	 {"alive with empty lists",
+	  	?_assertEqual({[], [Lower], []},
+		       update_lists(LowerID, alive, [Lower], [], []))},
+	 {"suspicious with empty lists",
+	  	?_assertEqual({[], [], [Lower]},
+		       update_lists(LowerID, suspicious, [], [Lower], []))},
+	 {"dead with dummy",
+	  	?_assertEqual({[Lower, Dum], [Dum], [Dum]},
+		       update_lists(LowerID, dead, [Dum], [Dum, Lower], [Dum]))},
+	 {"alive with dummy",
+	  	?_assertEqual({[Dum], [Lower, Dum], [Dum]},
+		       update_lists(LowerID, alive, [Dum], [Dum], [Lower, Dum]))},
+	 {"suspicious with dummy",
+	  	?_assertEqual({[Dum], [Dum], [Lower, Dum]},
+		       update_lists(LowerID, suspicious, [Dum, Lower], [Dum], [Dum]))}].
 -endif.
 	
 %%--------------------------------------------------------------------
@@ -183,9 +189,12 @@ update(ViewID, Weight, suspicious, DList, AList, SList) ->
 	{DList, AList, append_view(ViewID, Weight, SList)}.
 -ifdef(TEST).
 update_test_() ->
-	[?_assertEqual({[{42, 0}], [], []}, update(42, 0, dead, [], [], [])),
-	 ?_assertEqual({[], [{42, 0}], []}, update(42, 0, alive, [], [], [])),
-	 ?_assertEqual({[], [], [{42, 0}]}, update(42, 0, suspicious, [], [], []))].
+	[{"dead with empty lists",
+	  	?_assertEqual({[{42, 0}], [], []}, update(42, 0, dead, [], [], []))},
+	 {"alive with empty lists",
+	  	?_assertEqual({[], [{42, 0}], []}, update(42, 0, alive, [], [], []))},
+	 {"suspicious with empty lists",
+	  	?_assertEqual({[], [], [{42, 0}]}, update(42, 0, suspicious, [], [], []))}].
 -endif.
 
 %%--------------------------------------------------------------------
@@ -203,8 +212,10 @@ append_view(ViewID, Weight, List) ->
 	[{ViewID, Weight}|List].
 -ifdef(TEST).
 append_view_test_() ->
-	[?_assertEqual([{1, 2}], append_view(1, 2, [])),
-	 ?_assertEqual([{1, 2}, {3, 4}], append_view(1, 2, [{3, 4}]))].
+	[{"with empty lists",
+	  	?_assertEqual([{1, 2}], append_view(1, 2, []))},
+	 {"with dummy",
+	  	?_assertEqual([{1, 2}, {3, 4}], append_view(1, 2, [{3, 4}]))}].
 -endif.
 
 %%--------------------------------------------------------------------
@@ -223,9 +234,12 @@ sum2(TupleList) ->
 	lists:sum(Second).
 -ifdef(TEST).
 sum2_test_() ->
-	[?_assertEqual(40, sum2([{a, 2}, {"test", 4}, {2, 34}])),
-	 ?_assertEqual(0, sum2([{a, 0}, {"test", 0}])),
-	 ?_assertEqual(0, sum2([]))].
+	[{"normal sum",
+		?_assertEqual(40, sum2([{a, 2}, {"test", 4}, {2, 34}]))},
+	 {"null sum",
+		?_assertEqual(0, sum2([{a, 0}, {"test", 0}]))},
+	 {"empty",
+	  	?_assertEqual(0, sum2([]))}].
 -endif.
 
 %%--------------------------------------------------------------------
