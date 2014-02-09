@@ -1,5 +1,6 @@
 -module(view_core).
 -behaviour(gen_fsm).
+-compile([{parse_transform, lager_transform}]).
 
 %% ------------------------------------------------------------------
 %% State record
@@ -44,9 +45,11 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Tid, DE, DT, AE, AT, SE, ST) ->
+	lager:debug("Spawn: Core, Type: Complex"),
 	gen_fsm:start_link(?MODULE, {Tid, DE, DT, AE, AT, SE, ST}, []).
 
 start_link(Tid, E, T) ->
+	lager:debug("Spawn: Core, Type: Simple"),
 	gen_fsm:start_link(?MODULE, {Tid, E, T}, []).
 
 %%--------------------------------------------------------------------
@@ -65,6 +68,7 @@ forward(From, Tid, DSum, ASum, SSum) ->
 	To = view_sup:get_pid(Tid, ?MODULE),
 	Msg = {From, [{dead, DSum}, {alive, ASum}, {suspicious, SSum}]},
 	gen_fsm:send_event(To, Msg),
+	lager:debug("Forward: Sums, From: ~p, To: ~p", [From, To]),
 	ok.
 
 %% ------------------------------------------------------------------
@@ -93,6 +97,7 @@ init({Tid, E, T}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
 	S = #state{tid=Tid,
 		   all_ngn=E, all_thd=T},
+	lager:debug("Initilize: Core, Type: Simple, State: ~p", [S]),
 	{ok, dead, S};
 init({Tid, DE, DT, AE, AT, SE, ST}) ->
 	view_sup:set_pid(Tid, ?MODULE, self()),
@@ -100,6 +105,7 @@ init({Tid, DE, DT, AE, AT, SE, ST}) ->
 		   dead_ngn=DE, dead_thd=DT,
 		   alive_ngn=AE, alive_thd=AT,
 		   suspicious_ngn=SE, suspicious_thd=ST},
+	lager:debug("Initilize: Core, Type: Complex, State: ~p", [S]),
 	{ok, dead, S}.
 
 %%--------------------------------------------------------------------
@@ -173,7 +179,8 @@ suspicious({all, Data}, S) ->
 suspicious(_Event, S) ->
 	{next_state, suspicious, S}.
 
-terminate(_Reason, _Status, _State) ->
+terminate(_Reason, _Status, S) ->
+	lager:error("Terminate: Core, State: ~p", [S]),
 	ok.
 
 
