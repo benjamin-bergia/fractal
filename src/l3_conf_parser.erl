@@ -5,13 +5,45 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Do:
+%% 	Call break for each view contained in the config file	
+%% With:
+%% 	FilePath: The path to the configuration file
+%% @end
+%%--------------------------------------------------------------------
 parse(FilePath) ->
 	[break(Conf) || Conf <- get_conf(FilePath)].
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Get the views from the configuration file
+%% With:
+%% 	FilePath: The path to the configuration file
+%% @end
+%%--------------------------------------------------------------------
 get_conf(FilePath) ->
 	{ok, Conf} = file:consult(FilePath),
 	Conf.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Go through the view structure and return the list of
+%% 		information required to spawn the view
+%% With:
+%% 	ViewID:   The unique identifier of the view
+%% 	ViewName: A non unique name for the view
+%% 	Status:   Engine, Threshold and lowers for all the status (Simple View)
+%% 	StatusA:  Engine, Threshold and lowers to use when dead
+%% 	StatusB:  Engine, Threshold and lowers to use when dead
+%% 	StatusC:  Engine, Threshold and lowers to use when dead
+%% @end
+%%--------------------------------------------------------------------
 break({view, {id, ViewID}, {name, _ViewName}, Status}) ->
 	{E, T, L} = get_status(Status),
 	[ViewID, E, T, L];
@@ -59,6 +91,17 @@ break_test_() ->
 		       break(ComplexView))].
 -endif.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Parse the Status structure
+%% With:
+%% 	Engine: The name of the engine to use 
+%% 	Threshold: The threshold to use
+%% 	Lowers: A list of all the lower views
+%% @end
+%%--------------------------------------------------------------------
 get_status({all, _Engine, _Threshold, _Lowers}=Data) ->
 	get_status_safe(Data);
 get_status({dead, _Engine, _Threshold, _Lowers}=Data) ->
@@ -77,6 +120,16 @@ get_status_safe_test_() ->
 	?_assertEqual({engine, 2, [{1, 1}]}, get_status(Input)).
 -endif.
 
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Do:
+%% 	Go through the list of lowers and extract the ID and Weight
+%% 		of each of them
+%% With:
+%% 	LowerList: A list lowers
+%% @end
+%%--------------------------------------------------------------------
 get_lowers({lowers, []}) ->
 	[];
 get_lowers({lowers, LowersList}) ->
