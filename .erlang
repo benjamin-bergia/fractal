@@ -1,7 +1,2 @@
 code:add_patha("./ebin").
 code:add_patha("./deps/gproc/ebin").
-%tv:start().
-%observer:start().
-application:start(gproc).
-application:start(mnesia).
-application:start(fractal_core).
