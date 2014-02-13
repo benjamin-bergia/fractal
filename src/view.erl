@@ -7,7 +7,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/8, notify/2]).
+-export([start_link/8, propagate/2, notify/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -41,6 +41,18 @@ start_link(ViewID, Lowers, DE, DT, AE, AT, SE, ST) ->
 %% 	Status: new status of the calling view
 %% @end
 %%--------------------------------------------------------------------
-notify(From, Status) ->
+propagate(From, Status) ->
 	?STORE:set_status(From, Status),
+	?RX:forward(From, Status).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Do:
+%% 	Notify the View from a Status change (called by the router)
+%% With:
+%% 	From: id of calling view
+%% 	Status: new status of the calling view
+%% @end
+%%--------------------------------------------------------------------
+notify(From, Status) ->
 	?RX:forward(From, Status).
