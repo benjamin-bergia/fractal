@@ -205,5 +205,6 @@ terminate(_Reason, _Status, S) ->
 %%--------------------------------------------------------------------
 routine(Tid, Engine, Status, Threshold, Data) ->
 	NewStatus = engine:process(Engine, Status, Threshold, Data),
+	lager:debug("Called: ~p, With: ~p, Returned: ~p, When: ~p", [Engine, Data, NewStatus, Status]),
 	ok = view_tx:forward(Tid, NewStatus),
 	NewStatus.
