@@ -79,7 +79,7 @@ init({Tid, ViewID}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast({status_change, Status}, S) ->
-	{ok, _Pids} = view:notify(S#state.view_id, Status),
+	{ok, _Pids} = view:propagate(S#state.view_id, Status),
 	{noreply, S}.
 
 terminate(_Reason, _State) ->
