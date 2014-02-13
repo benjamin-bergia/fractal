@@ -11,13 +11,13 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, set_status/2, install/0]).
+-export([start_link/0, set_status/2, get_status/1, install/0]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
 %% ------------------------------------------------------------------
 
--export([init/1, handle_cast/2, terminate/2]).
+-export([init/1, handle_cast/2, handle_call/3, terminate/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -29,6 +29,9 @@ start_link() ->
 set_status(ViewID, Status) ->
 	gen_server:cast(?MODULE, {set_status, ViewID, Status}).
 
+get_status(ViewID) ->
+	gen_server:call(?MODULE, {get_status, ViewID}).
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
@@ -39,6 +42,9 @@ init([]) ->
 handle_cast({set_status, ViewID, Status}, S) ->
 	write(#view_status{view_id=ViewID, status=Status}),
 	{noreply, S}.
+
+handle_call({get_status, ViewID}, _From, S) ->
+	{reply, read(ViewID), S}.
 
 terminate(_Reason, _State) ->
 	ok.
@@ -53,6 +59,11 @@ write(Record) ->
 		end,
 	mnesia:activity(sync_transaction, Write).
 
+read(ViewID) ->
+	Read = fun() ->
+			mnesia:read(view_status, ViewID)
+		end,
+	mnesia:activity(sync_transaction, Read).
 
 install() ->
 	ok = mnesia:create_schema([node()]),
