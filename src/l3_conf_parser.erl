@@ -1,6 +1,8 @@
 -module(l3_conf_parser).
 -export([parse/1]).
 
+define(ROUTER, {router, 1})
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -111,7 +113,12 @@ get_status({alive, _Engine, _Threshold, _Lowers}=Data) ->
 get_status({suspicious, _Engine, _Threshold, _Lowers}=Data) ->
 	get_status_safe(Data).
 get_status_safe({_Status, {engine, Engine}, {threshold, Threshold}, Lowers}) ->
-	{Engine, Threshold, get_lowers(Lowers)}.
+	case get_lowers(Lowers) of
+		[?ROUTER] ->
+			{Engine, 1, [?ROUTER]};
+		_ ->
+			{Engine, Threshold, get_lowers(Lowers)}
+	end.
 -ifdef(TEST).
 get_status_safe_test_() ->
 	Input = {dead, {engine, engine},
@@ -131,7 +138,7 @@ get_status_safe_test_() ->
 %% @end
 %%--------------------------------------------------------------------
 get_lowers({lowers, []}) ->
-	[];
+	[?ROUTER];	% If the view has no lowers, we connect it to the router
 get_lowers({lowers, LowersList}) ->
 	F = fun({lower, {id, ID}, {weight, Weight}}, Acc) ->
 			[{ID, Weight}|Acc]
