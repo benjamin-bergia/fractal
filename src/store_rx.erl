@@ -61,7 +61,7 @@ write(Record) ->
 
 read(ViewID) ->
 	Read = fun() ->
-			mnesia:read(view_status, ViewID)
+			mnesia:read({view_status, ViewID})
 		end,
 	mnesia:activity(sync_transaction, Read).
 
