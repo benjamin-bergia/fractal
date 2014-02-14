@@ -50,6 +50,7 @@ propagate(From, Status) ->
 %% @doc
 %% Do:
 %% 	Notify the View from a Status change (called by the router)
+%% 	/!\ Doesn't update the store
 %% With:
 %% 	From: id of calling view
 %% 	Status: new status of the calling view
