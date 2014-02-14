@@ -35,7 +35,8 @@ start_link(ViewID, Lowers, DE, DT, AE, AT, SE, ST) ->
 %%--------------------------------------------------------------------
 %% @doc
 %% Do:
-%% 	Notify the View from a Status change (called by a lower view)
+%% 	Notify the View from a Status change and record it in the store
+%% 	(called by a lower view)
 %% With:
 %% 	From: id of calling view
 %% 	Status: new status of the calling view
