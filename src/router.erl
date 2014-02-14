@@ -2,16 +2,10 @@
 -define(STORE, store_rx).
 
 %% ------------------------------------------------------------------
-%% State record
-%% ------------------------------------------------------------------
-
--record(view_status, {view_id, status}).
-
-%% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([notify/2, query/1]).
+-export([notify/2, query/1, gen_pub/1]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -33,7 +27,7 @@ notify(To, alive) ->
 notify(To, suspicious) ->
 	notify_safe(To, suspicious).
 notify_safe(To, Status) ->
-	view:notify(To, Status).
+	view:notify(gen_pub(To), Status).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -45,3 +39,14 @@ notify_safe(To, Status) ->
 %%--------------------------------------------------------------------
 query(ViewID) ->
 	?STORE:get_status(ViewID).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Do:
+%% 	Generate new provider id allowing the view to subscribe to the router
+%% With:
+%% 	ViewID: Id of the view
+%% @end
+%%--------------------------------------------------------------------
+gen_pub(ViewID) ->
+	{router, ViewID}.
