@@ -1,7 +1,7 @@
 -module(l3_conf_parser).
 -export([parse/1]).
 
-define(ROUTER, {router, 1})
+-define(ROUTER, {router, 1}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -115,7 +115,8 @@ get_status({suspicious, _Engine, _Threshold, _Lowers}=Data) ->
 get_status_safe({_Status, {engine, Engine}, {threshold, Threshold}, Lowers}) ->
 	case get_lowers(Lowers) of
 		[?ROUTER] ->
-			{Engine, 1, [?ROUTER]};
+			{Engine, 1, [?ROUTER]}; % If the router is the only lower
+						% view, Threshold is useless
 		_ ->
 			{Engine, Threshold, get_lowers(Lowers)}
 	end.
