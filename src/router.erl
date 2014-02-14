@@ -11,7 +11,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([forward/2, query/1]).
+-export([notify/2, query/1]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -20,19 +20,19 @@
 %%--------------------------------------------------------------------
 %% @doc
 %% Do:
-%% 	Forward a status change to the corresponding view
+%% 	Notify a status change to the corresponding view
 %% With:
-%% 	To: Id of the view to forward to
+%% 	To: Id of the view to notify to
 %% 	dead/alive/suspicious: Status
 %% @end
 %%--------------------------------------------------------------------
-forward(To, dead) ->
-	forward_safe(To, dead);
-forward(To, alive) ->
-	forward_safe(To, alive);
-forward(To, suspicious) ->
-	forward_safe(To, suspicious).
-forward_safe(To, Status) ->
+notify(To, dead) ->
+	notify_safe(To, dead);
+notify(To, alive) ->
+	notify_safe(To, alive);
+notify(To, suspicious) ->
+	notify_safe(To, suspicious).
+notify_safe(To, Status) ->
 	view:notify(To, Status).
 
 %%--------------------------------------------------------------------
@@ -40,7 +40,7 @@ forward_safe(To, Status) ->
 %% Do:
 %% 	Send a message to the store to get the status of a given view
 %% With:
-%% 	ViewID: Id of the view to forward to
+%% 	ViewID: Id of the view to notify to
 %% @end
 %%--------------------------------------------------------------------
 query(ViewID) ->
