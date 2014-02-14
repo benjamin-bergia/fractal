@@ -1,7 +1,7 @@
 -module(l3_conf_parser).
 -export([parse/1]).
 
--define(ROUTER, {router, 1}).
+-define(RT_IF(N), {N, 1}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -47,12 +47,12 @@ get_conf(FilePath) ->
 %% @end
 %%--------------------------------------------------------------------
 break({view, {id, ViewID}, {name, _ViewName}, Status}) ->
-	{E, T, L} = get_status(Status),
+	{E, T, L} = get_status(Status, ViewID),
 	[ViewID, E, T, L];
 break({view, {id, ViewID}, {name, _ViewName}, StatusA, StatusB, StatusC}) ->
-	{DE, DT, DL} = get_status(StatusA),
-	{AE, AT, AL} = get_status(StatusB),
-	{SE, ST, SL} = get_status(StatusC),
+	{DE, DT, DL} = get_status(StatusA, ViewID),
+	{AE, AT, AL} = get_status(StatusB, ViewID),
+	{SE, ST, SL} = get_status(StatusC, ViewID),
 	[ViewID, DE, DT, DL, AE, AT, AL, SE, ST, SL].
 -ifdef(TEST).
 break_test_() ->
@@ -66,7 +66,8 @@ break_test_() ->
 				  {id, 2},
 				  {weight, 3}}]}}},
 	ComplexView = {view,
-		      {id, 1},
+	tom
+	{id, 1},
 		      {name, "nothing"},
 		      {dead,
 		       {engine, engine},
@@ -77,7 +78,7 @@ break_test_() ->
 		      {alive,
 		       {engine, engine},
 		       {threshold, 2},
-		       {lowers, []}},
+		       {lowers, [?RT_IF(router:gen_pub(1))]}},
 		      {suspicious,
 		       {engine, engine},
 		       {threshold, 2},
@@ -104,19 +105,19 @@ break_test_() ->
 %% 	Lowers: A list of all the lower views
 %% @end
 %%--------------------------------------------------------------------
-get_status({all, _Engine, _Threshold, _Lowers}=Data) ->
-	get_status_safe(Data);
-get_status({dead, _Engine, _Threshold, _Lowers}=Data) ->
-	get_status_safe(Data);
-get_status({alive, _Engine, _Threshold, _Lowers}=Data) ->
-	get_status_safe(Data);
-get_status({suspicious, _Engine, _Threshold, _Lowers}=Data) ->
-	get_status_safe(Data).
-get_status_safe({_Status, {engine, Engine}, {threshold, Threshold}, Lowers}) ->
+get_status({all, _Engine, _Threshold, _Lowers}=Data, ViewID) ->
+	get_status_safe(Data, ViewID);
+get_status({dead, _Engine, _Threshold, _Lowers}=Data, ViewID) ->
+	get_status_safe(Data, ViewID);
+get_status({alive, _Engine, _Threshold, _Lowers}=Data, ViewID) ->
+	get_status_safe(Data, ViewID);
+get_status({suspicious, _Engine, _Threshold, _Lowers}=Data, ViewID) ->
+	get_status_safe(Data, ViewID).
+get_status_safe({_Status, {engine, Engine}, {threshold, Threshold}, Lowers}, ViewID) ->
 	case get_lowers(Lowers) of
-		[?ROUTER] ->
-			{Engine, 1, [?ROUTER]}; % If the router is the only lower
-						% view, Threshold is useless
+		[] ->
+			{Engine, 1, [?RT_IF(router:gen_pub(ViewID))]}; 	% If the router is the only lower
+									% view, Threshold is useless
 		_ ->
 			{Engine, Threshold, get_lowers(Lowers)}
 	end.
@@ -139,7 +140,7 @@ get_status_safe_test_() ->
 %% @end
 %%--------------------------------------------------------------------
 get_lowers({lowers, []}) ->
-	[?ROUTER];	% If the view has no lowers, we connect it to the router
+	[];
 get_lowers({lowers, LowersList}) ->
 	F = fun({lower, {id, ID}, {weight, Weight}}, Acc) ->
 			[{ID, Weight}|Acc]
